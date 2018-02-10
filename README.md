@@ -1,6 +1,6 @@
 # XBR is Gold
 
-The *XBR is Gold* is a free Android application that can be installed from the Google Playstore and F-Droid.
+The *XBR is Gold* is a free and open-source application for Android and Android Wear that can be installed from the Google Playstore and F-Droid.
 
 The *XBR is Gold* allows to perform fundamental actions with XBR for investors and for (end) users:
 
