@@ -1,8 +1,8 @@
-# XBR App
+# XBR is Gold
 
-The XBR app is a free Android application that can be installed from the Google Playstore.
+The *XBR is Gold* is a free Android application that can be installed from the Google Playstore and F-Droid.
 
-The XBR app allows to perform fundamental actions with XBR for investors and for (end) users:
+The *XBR is Gold* allows to perform fundamental actions with XBR for investors and for (end) users:
 
 - get N free XBR tokens (limited supply!)
 - buy XBR tokens at our public token sale
