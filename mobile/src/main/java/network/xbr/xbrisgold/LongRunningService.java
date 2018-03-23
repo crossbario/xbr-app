@@ -39,7 +39,7 @@ public class LongRunningService extends Service {
                 "test@crossbario.com",
                 "ef83d35678742e01fa412d597cd3909c113b12a8a7dc101cba073c0423c9db41",
                 "e5b0d24af05c77d644de885946147aeb4fa6897a5cf4eb14347c3d637664b117");
-        Client client = new Client(wampSession, "ws://192.168.31.95:8080/ws", "realm1", auth);
+        Client client = new Client(wampSession, "ws://178.62.69.210:8080/ws", "realm1", auth);
         return client.connect();
     }
 

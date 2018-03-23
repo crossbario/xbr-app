@@ -23,18 +23,10 @@ android {
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.android.support:appcompat-v7:26.1.0'
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
     wearApp project(':wear')
     implementation 'com.google.android.gms:play-services-wearable:12.0.0'
-
-//    implementation 'io.crossbar.autobahn:autobahn-android:17.10.5'
-
-    // TO BE REMOVED ONCE LATEST ABJ IS UPLOADED TO JCENTER
-    api 'com.fasterxml.jackson.core:jackson-core:2.8.8'
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.8.8'
-    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.8.8'
-    implementation 'org.msgpack:jackson-dataformat-msgpack:0.8.13'
-    implementation 'com.github.joshjdevl.libsodiumjni:libsodium-jni-aar:1.0.7'
+    implementation 'io.crossbar.autobahn:autobahn-android:18.3.1'
 }
