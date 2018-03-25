@@ -63,7 +63,7 @@ public class LongRunningService extends Service {
         wampSession.addOnLeaveListener((session, closeDetails) -> System.out.println("LEFT"));
         wampSession.addOnDisconnectListener((session, b) -> {
             // Check if we have a working internet before attempting a reconnect.
-            System.out.println("DISCONNECTED");
+            System.out.println(String.format("DISCONNECTED, clean=%s", b));
             actuallyConnect(getApplicationContext());
         });
         IAuthenticator auth = new CryptosignAuth(
