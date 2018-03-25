@@ -36,6 +36,7 @@ public class MainActivity extends AppCompatActivity {
             // Show dialog that app may get killed in the background by the OS
             // and won't work once device enters doze mode.
             // https://developer.android.com/training/monitoring-device-state/doze-standby.html
+            startService(new Intent(getApplicationContext(), LongRunningService.class));
         }
     }
 }
