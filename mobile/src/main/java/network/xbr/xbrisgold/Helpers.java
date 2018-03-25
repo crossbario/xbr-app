@@ -5,8 +5,9 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 
 import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketAddress;
 import java.util.concurrent.CompletableFuture;
 
 public class Helpers {
@@ -21,9 +22,10 @@ public class Helpers {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         new Thread(() -> {
             try {
-                URL url = new URL("http://www.google.com");
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                connection.connect();
+                Socket socket = new Socket();
+                SocketAddress socketAddress = new InetSocketAddress("www.google.com", 80);
+                socket.connect(socketAddress, 5000);
+                socket.close();
                 future.complete(true);
             } catch (IOException ignore) {
                 future.complete(false);
