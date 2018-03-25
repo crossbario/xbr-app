@@ -24,18 +24,24 @@ public class MainActivity extends AppCompatActivity {
             intent.setData(Uri.parse("package:" + packageName));
             startActivityForResult(intent, REQUEST_CODE);
         } else {
-            startService(new Intent(getApplicationContext(), LongRunningService.class));
+            startBackgroundService();
         }
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == SUCCESS_CODE) {
-            startService(new Intent(getApplicationContext(), LongRunningService.class));
+            startBackgroundService();
         } else {
             // Show dialog that app may get killed in the background by the OS
             // and won't work once device enters doze mode.
             // https://developer.android.com/training/monitoring-device-state/doze-standby.html
+            startBackgroundService();
+        }
+    }
+
+    private void startBackgroundService() {
+        if (!LongRunningService.isRunning()) {
             startService(new Intent(getApplicationContext(), LongRunningService.class));
         }
     }
