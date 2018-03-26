@@ -22,15 +22,31 @@ import io.crossbar.autobahn.wamp.types.SessionDetails;
 
 public class LongRunningService extends Service {
 
+    private static final long RECONNECT_INTERVAL = 10000;
+    private static final long CALL_QUEUE_INTERVAL = 1000;
+
+    private static boolean sIsRunning;
+
+    private long mLastConnectRequestTime;
+    private boolean mWasReconnectRequest;
+    private Handler mHandler;
+    private Runnable mLastCallback;
+
+    public static boolean isRunning() {
+        return sIsRunning;
+    }
+
     private BroadcastReceiver mNetworkStateChangeListener = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            actuallyConnect(context);
+            connectToServer(context);
         }
     };
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        sIsRunning = true;
+        mHandler = new Handler();
         registerReceiver(mNetworkStateChangeListener,
                 new IntentFilter("android.net.conn.CONNECTIVITY_CHANGE"));
         // Automatically restarts the service if killed by the OS.
@@ -41,30 +57,49 @@ public class LongRunningService extends Service {
     public void onDestroy() {
         unregisterReceiver(mNetworkStateChangeListener);
         super.onDestroy();
+        sIsRunning = false;
     }
 
-    private void actuallyConnect(Context ctx) {
+    private long getTimeSinceLastConnectRequest() {
+        return System.currentTimeMillis() - mLastConnectRequestTime;
+    }
+
+    private void connectToServer(Context ctx) {
         if (Helpers.isNetworkAvailable(ctx.getApplicationContext())) {
+            if (mWasReconnectRequest && getTimeSinceLastConnectRequest() < RECONNECT_INTERVAL) {
+                mWasReconnectRequest = false;
+                mHandler.removeCallbacks(mLastCallback);
+            } else if (!mWasReconnectRequest
+                    && getTimeSinceLastConnectRequest() < CALL_QUEUE_INTERVAL) {
+                System.out.println("REMOVE");
+                mHandler.removeCallbacks(mLastCallback);
+            }
+
             Helpers.isInternetWorking().whenComplete((working, throwable) -> {
+                mLastConnectRequestTime = System.currentTimeMillis();
                 if (working) {
-                    connectToServer();
+                    mLastCallback = this::actuallyConnect;
+                    mHandler.postDelayed(mLastCallback, CALL_QUEUE_INTERVAL);
                 } else {
                     // Network is available but we don't have a working internet
                     // lets schedule something to recheck if internet is working.
-                    new Handler().postDelayed(() -> actuallyConnect(ctx), 10000);
+                    mLastCallback = () -> connectToServer(ctx);
+                    mWasReconnectRequest = true;
+                    mHandler.postDelayed(mLastCallback, RECONNECT_INTERVAL);
                 }
             });
+        } else {
+            System.out.println("Network not available");
         }
     }
 
-    private void connectToServer() {
+    private void actuallyConnect() {
         Session wampSession = new Session();
         wampSession.addOnJoinListener(this::onJoin);
         wampSession.addOnLeaveListener((session, closeDetails) -> System.out.println("LEFT"));
         wampSession.addOnDisconnectListener((session, b) -> {
-            // Check if we have a working internet before attempting a reconnect.
             System.out.println(String.format("DISCONNECTED, clean=%s", b));
-            actuallyConnect(getApplicationContext());
+            connectToServer(getApplicationContext());
         });
         IAuthenticator auth = new CryptosignAuth(
                 "test@crossbario.com",

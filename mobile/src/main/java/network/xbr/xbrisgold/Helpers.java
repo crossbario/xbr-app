@@ -11,6 +11,10 @@ import java.net.SocketAddress;
 import java.util.concurrent.CompletableFuture;
 
 public class Helpers {
+
+    private static CompletableFuture<Boolean> sInternetFuture;
+    private static boolean sIsLastRunComplete;
+
     public static boolean isNetworkAvailable(Context ctx) {
         ConnectivityManager cm = (ConnectivityManager) ctx.getSystemService(
                 Context.CONNECTIVITY_SERVICE);
@@ -19,18 +23,22 @@ public class Helpers {
     }
 
     public static CompletableFuture<Boolean> isInternetWorking() {
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        if (sInternetFuture == null || sIsLastRunComplete) {
+            sInternetFuture= new CompletableFuture<>();
+        }
+
         new Thread(() -> {
             try {
                 Socket socket = new Socket();
                 SocketAddress socketAddress = new InetSocketAddress("www.google.com", 80);
                 socket.connect(socketAddress, 5000);
                 socket.close();
-                future.complete(true);
+                sInternetFuture.complete(true);
             } catch (IOException ignore) {
-                future.complete(false);
+                sInternetFuture.complete(false);
             }
+            sIsLastRunComplete = true;
         }).start();
-        return future;
+        return sInternetFuture;
     }
 }
