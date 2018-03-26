@@ -13,15 +13,16 @@ import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.concurrent.CompletableFuture;
 
 import io.crossbar.autobahn.wamp.Client;
 import io.crossbar.autobahn.wamp.Session;
 import io.crossbar.autobahn.wamp.auth.CryptosignAuth;
 import io.crossbar.autobahn.wamp.interfaces.IAuthenticator;
+import io.crossbar.autobahn.wamp.types.Registration;
 import io.crossbar.autobahn.wamp.types.SessionDetails;
 
 public class LongRunningService extends Service {
@@ -36,19 +37,20 @@ public class LongRunningService extends Service {
     private boolean mWasReconnectRequest;
     private Handler mHandler;
     private Runnable mLastCallback;
-    private int mTick;
+
+    private int mCallCount = 1;
+    private DateFormat mDateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 
     private void appendCrashCount() {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         int currentCount = preferences.getInt("crash_count", 0);
         preferences.edit().putInt("crash_count", currentCount + 1).apply();
     }
-1
+
     private int getCrashCount() {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         return preferences.getInt("crash_count", 0);
     }
-
 
     public static boolean isRunning() {
         return sIsRunning;
@@ -138,17 +140,22 @@ public class LongRunningService extends Service {
         });
     }
 
+    private String heartBeat() {
+        System.out.println(String.format("Called count: %s", mCallCount));
+        String response = String.format("Beats count %s, %s", mCallCount,
+                mDateFormat.format(new Date()));
+        mCallCount++;
+        return response;
+    }
+
     private void onJoin(Session session, SessionDetails details) {
-        if (!session.isConnected()) {
-            return;
-        }
-        session.publish("io.xbr.gold.tick", mTick).whenComplete((publication, throwable) -> {
+        CompletableFuture<Registration> regFuture = session.register(
+                "network.xbr.heartbeat", this::heartBeat);
+        regFuture.whenComplete((registration, throwable) -> {
             if (throwable == null) {
-                Log.i(TAG, String.format("Published io.xbr.gold.tick %s", mTick));
+                System.out.println("Registered");
             }
         });
-        mTick++;
-        new Handler().postDelayed(() -> onJoin(session, details), 10000);
     }
 
     @Nullable
