@@ -6,22 +6,28 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.IBinder;
+import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
+import android.util.Log;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.concurrent.CompletableFuture;
 
 import io.crossbar.autobahn.wamp.Client;
 import io.crossbar.autobahn.wamp.Session;
 import io.crossbar.autobahn.wamp.auth.CryptosignAuth;
 import io.crossbar.autobahn.wamp.interfaces.IAuthenticator;
+import io.crossbar.autobahn.wamp.types.Registration;
 import io.crossbar.autobahn.wamp.types.SessionDetails;
 
 public class LongRunningService extends Service {
 
+    private static final String TAG = LongRunningService.class.getName();
     private static final long RECONNECT_INTERVAL = 10000;
     private static final long CALL_QUEUE_INTERVAL = 1000;
 
@@ -31,6 +37,20 @@ public class LongRunningService extends Service {
     private boolean mWasReconnectRequest;
     private Handler mHandler;
     private Runnable mLastCallback;
+
+    private int mCallCount = 1;
+    private DateFormat mDateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+
+    private void appendCrashCount() {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        int currentCount = preferences.getInt("crash_count", 0);
+        preferences.edit().putInt("crash_count", currentCount + 1).apply();
+    }
+
+    private int getCrashCount() {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        return preferences.getInt("crash_count", 0);
+    }
 
     public static boolean isRunning() {
         return sIsRunning;
@@ -45,6 +65,7 @@ public class LongRunningService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.i(TAG, String.format("Crash count: %s", getCrashCount()));
         sIsRunning = true;
         mHandler = new Handler();
         registerReceiver(mNetworkStateChangeListener,
@@ -58,6 +79,12 @@ public class LongRunningService extends Service {
         unregisterReceiver(mNetworkStateChangeListener);
         super.onDestroy();
         sIsRunning = false;
+        appendCrashCount();
+    }
+
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        appendCrashCount();
     }
 
     private long getTimeSinceLastConnectRequest() {
@@ -71,7 +98,7 @@ public class LongRunningService extends Service {
                 mHandler.removeCallbacks(mLastCallback);
             } else if (!mWasReconnectRequest
                     && getTimeSinceLastConnectRequest() < CALL_QUEUE_INTERVAL) {
-                System.out.println("REMOVE");
+                Log.i(TAG, "REMOVE");
                 mHandler.removeCallbacks(mLastCallback);
             }
 
@@ -89,16 +116,16 @@ public class LongRunningService extends Service {
                 }
             });
         } else {
-            System.out.println("Network not available");
+            Log.i(TAG, "Network not available");
         }
     }
 
     private void actuallyConnect() {
         Session wampSession = new Session();
         wampSession.addOnJoinListener(this::onJoin);
-        wampSession.addOnLeaveListener((session, closeDetails) -> System.out.println("LEFT"));
+        wampSession.addOnLeaveListener((session, closeDetails) -> Log.i(TAG, "LEFT"));
         wampSession.addOnDisconnectListener((session, b) -> {
-            System.out.println(String.format("DISCONNECTED, clean=%s", b));
+            Log.i(TAG, String.format("DISCONNECTED, clean=%s", b));
             connectToServer(getApplicationContext());
         });
         IAuthenticator auth = new CryptosignAuth(
@@ -113,17 +140,22 @@ public class LongRunningService extends Service {
         });
     }
 
+    private String heartBeat() {
+        System.out.println(String.format("Called count: %s", mCallCount));
+        String response = String.format("Beats count %s, %s", mCallCount,
+                mDateFormat.format(new Date()));
+        mCallCount++;
+        return response;
+    }
+
     private void onJoin(Session session, SessionDetails details) {
-        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-        final int[] i = {0};
-        executorService.scheduleAtFixedRate(() -> {
-            session.publish("io.xbr.gold.tick", i[0]).whenComplete((publication, throwable) -> {
-                if (throwable == null) {
-                    System.out.println(String.format("Published io.cbr.gold.tick %s", i[0]));
-                }
-            });
-            i[0]++;
-        }, 0, 1, TimeUnit.MINUTES);
+        CompletableFuture<Registration> regFuture = session.register(
+                "network.xbr.heartbeat", this::heartBeat);
+        regFuture.whenComplete((registration, throwable) -> {
+            if (throwable == null) {
+                System.out.println("Registered");
+            }
+        });
     }
 
     @Nullable
