@@ -10,7 +10,6 @@ import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
-import android.support.annotation.Nullable;
 import android.util.Log;
 
 import java.text.DateFormat;
@@ -24,6 +23,7 @@ import io.crossbar.autobahn.wamp.auth.CryptosignAuth;
 import io.crossbar.autobahn.wamp.interfaces.IAuthenticator;
 import io.crossbar.autobahn.wamp.types.Registration;
 import io.crossbar.autobahn.wamp.types.SessionDetails;
+import io.crossbar.autobahn.wamp.types.TransportOptions;
 
 public class LongRunningService extends Service {
 
@@ -38,7 +38,7 @@ public class LongRunningService extends Service {
     private Handler mHandler;
     private Runnable mLastCallback;
 
-    private int mCallCount = 1;
+    private int mCallCount = 0;
     private DateFormat mDateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 
     private void appendCrashCount() {
@@ -125,6 +125,7 @@ public class LongRunningService extends Service {
         wampSession.addOnJoinListener(this::onJoin);
         wampSession.addOnLeaveListener((session, closeDetails) -> Log.i(TAG, "LEFT"));
         wampSession.addOnDisconnectListener((session, b) -> {
+            mCallCount = 0;
             Log.i(TAG, String.format("DISCONNECTED, clean=%s", b));
             connectToServer(getApplicationContext());
         });
@@ -133,7 +134,10 @@ public class LongRunningService extends Service {
                 "ef83d35678742e01fa412d597cd3909c113b12a8a7dc101cba073c0423c9db41",
                 "e5b0d24af05c77d644de885946147aeb4fa6897a5cf4eb14347c3d637664b117");
         Client client = new Client(wampSession, "ws://178.62.69.210:8080/ws", "realm1", auth);
-        client.connect().whenComplete((exitInfo, throwable) -> {
+
+        TransportOptions options = new TransportOptions();
+        options.setAutoPingInterval(60);
+        client.connect(options).whenComplete((exitInfo, throwable) -> {
             if (throwable != null) {
                 throwable.printStackTrace();
             }
@@ -141,24 +145,21 @@ public class LongRunningService extends Service {
     }
 
     private String heartBeat() {
-        System.out.println(String.format("Called count: %s", mCallCount));
-        String response = String.format("Beats count %s, %s", mCallCount,
-                mDateFormat.format(new Date()));
         mCallCount++;
-        return response;
+        Log.i(TAG, String.format("Registered procedure %s", mCallCount));
+        return String.format("Beats count %s, %s", mCallCount, mDateFormat.format(new Date()));
     }
 
     private void onJoin(Session session, SessionDetails details) {
-        CompletableFuture<Registration> regFuture = session.register(
-                "network.xbr.heartbeat", this::heartBeat);
+        String procedure = "network.xbr.heartbeat";
+        CompletableFuture<Registration> regFuture = session.register(procedure, this::heartBeat);
         regFuture.whenComplete((registration, throwable) -> {
             if (throwable == null) {
-                System.out.println("Registered");
+                Log.i(TAG, String.format("Registered procedure %s", procedure));
             }
         });
     }
 
-    @Nullable
     @Override
     public IBinder onBind(Intent intent) {
         return null;
