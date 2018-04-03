@@ -6,24 +6,21 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.IBinder;
-import android.preference.PreferenceManager;
 import android.util.Log;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.concurrent.CompletableFuture;
 
 import io.crossbar.autobahn.wamp.Client;
 import io.crossbar.autobahn.wamp.Session;
 import io.crossbar.autobahn.wamp.auth.CryptosignAuth;
 import io.crossbar.autobahn.wamp.interfaces.IAuthenticator;
-import io.crossbar.autobahn.wamp.types.Registration;
 import io.crossbar.autobahn.wamp.types.SessionDetails;
 import io.crossbar.autobahn.wamp.types.TransportOptions;
+import network.xbr.xbrisgold.database.StatsKeyValueStore;
 
 public class LongRunningService extends Service {
 
@@ -41,16 +38,7 @@ public class LongRunningService extends Service {
     private int mCallCount = 0;
     private DateFormat mDateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 
-    private void appendCrashCount() {
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
-        int currentCount = preferences.getInt("crash_count", 0);
-        preferences.edit().putInt("crash_count", currentCount + 1).apply();
-    }
-
-    private int getCrashCount() {
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
-        return preferences.getInt("crash_count", 0);
-    }
+    private StatsKeyValueStore mStatsStore;
 
     public static boolean isRunning() {
         return sIsRunning;
@@ -64,8 +52,14 @@ public class LongRunningService extends Service {
     };
 
     @Override
+    public void onCreate() {
+        super.onCreate();
+        mStatsStore = StatsKeyValueStore.getInstance(getApplicationContext());
+    }
+
+    @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.i(TAG, String.format("Crash count: %s", getCrashCount()));
+        Log.i(TAG, String.format("Crash count: %s", mStatsStore.getServiceCrashCount()));
         sIsRunning = true;
         mHandler = new Handler();
         registerReceiver(mNetworkStateChangeListener,
@@ -79,12 +73,12 @@ public class LongRunningService extends Service {
         unregisterReceiver(mNetworkStateChangeListener);
         super.onDestroy();
         sIsRunning = false;
-        appendCrashCount();
+        mStatsStore.appendServiceCrashCount();
     }
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {
-        appendCrashCount();
+        mStatsStore.appendServiceCrashCount();
     }
 
     private long getTimeSinceLastConnectRequest() {
@@ -121,6 +115,8 @@ public class LongRunningService extends Service {
     }
 
     private void actuallyConnect() {
+        mStatsStore.appendConnectionAttemptsCount();
+
         Session wampSession = new Session();
         wampSession.addOnJoinListener(this::onJoin);
         wampSession.addOnLeaveListener((session, closeDetails) -> Log.i(TAG, "LEFT"));
@@ -146,16 +142,37 @@ public class LongRunningService extends Service {
 
     private String heartBeat() {
         mCallCount++;
-        Log.i(TAG, String.format("Registered procedure %s", mCallCount));
+        Log.i(TAG, String.format("Called procedure %s", mCallCount));
         return String.format("Beats count %s, %s", mCallCount, mDateFormat.format(new Date()));
     }
 
+    private String stats() {
+        int crashCount = mStatsStore.getServiceCrashCount();
+        int successCount = mStatsStore.getConnectionSuccessCount();
+        int failureCount = mStatsStore.getConnectionFailureCount();
+        int retriesCount = mStatsStore.getConnectionRetriesCount();
+
+        return String.format("crash: %s, success %s, failure %s, retries %s",
+                crashCount, successCount, failureCount, retriesCount);
+    }
+
     private void onJoin(Session session, SessionDetails details) {
-        String procedure = "network.xbr.heartbeat";
-        CompletableFuture<Registration> regFuture = session.register(procedure, this::heartBeat);
-        regFuture.whenComplete((registration, throwable) -> {
+        mStatsStore.appendConnectionSuccessCount();
+        String proc1 = "network.xbr.heartbeat";
+        session.register(proc1, this::heartBeat).whenComplete((registration, throwable) -> {
             if (throwable == null) {
-                Log.i(TAG, String.format("Registered procedure %s", procedure));
+                Log.i(TAG, String.format("Registered procedure %s", proc1));
+            } else {
+                throwable.printStackTrace();
+            }
+        });
+
+        String proc2 = "network.xbr.connection_stats";
+        session.register(proc2, this::stats).whenComplete((registration, throwable) -> {
+            if (throwable == null) {
+                Log.i(TAG, String.format("Registered procedure %s", proc2));
+            } else {
+                throwable.printStackTrace();
             }
         });
     }
