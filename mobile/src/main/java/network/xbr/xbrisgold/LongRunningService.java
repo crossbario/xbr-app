@@ -18,6 +18,7 @@ import io.crossbar.autobahn.wamp.Client;
 import io.crossbar.autobahn.wamp.Session;
 import io.crossbar.autobahn.wamp.auth.CryptosignAuth;
 import io.crossbar.autobahn.wamp.interfaces.IAuthenticator;
+import io.crossbar.autobahn.wamp.types.RegisterOptions;
 import io.crossbar.autobahn.wamp.types.SessionDetails;
 import io.crossbar.autobahn.wamp.types.TransportOptions;
 import network.xbr.xbrisgold.database.StatsKeyValueStore;
@@ -158,8 +159,10 @@ public class LongRunningService extends Service {
 
     private void onJoin(Session session, SessionDetails details) {
         mStatsStore.appendConnectionSuccessCount();
+        RegisterOptions options = new RegisterOptions(
+                RegisterOptions.MATCH_EXACT, RegisterOptions.INVOKE_ROUNDROBIN);
         String proc1 = "network.xbr.heartbeat";
-        session.register(proc1, this::heartBeat).whenComplete((registration, throwable) -> {
+        session.register(proc1, this::heartBeat, options).whenComplete((registration, throwable) -> {
             if (throwable == null) {
                 Log.i(TAG, String.format("Registered procedure %s", proc1));
             } else {
@@ -168,7 +171,7 @@ public class LongRunningService extends Service {
         });
 
         String proc2 = "network.xbr.connection_stats";
-        session.register(proc2, this::stats).whenComplete((registration, throwable) -> {
+        session.register(proc2, this::stats, options).whenComplete((registration, throwable) -> {
             if (throwable == null) {
                 Log.i(TAG, String.format("Registered procedure %s", proc2));
             } else {
