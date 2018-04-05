@@ -10,10 +10,6 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
 import io.crossbar.autobahn.wamp.Client;
 import io.crossbar.autobahn.wamp.Session;
 import io.crossbar.autobahn.wamp.auth.CryptosignAuth;
@@ -26,8 +22,8 @@ import network.xbr.xbrisgold.database.StatsKeyValueStore;
 public class LongRunningService extends Service {
 
     private static final String TAG = LongRunningService.class.getName();
-    private static final long RECONNECT_INTERVAL = 10000;
-    private static final long CALL_QUEUE_INTERVAL = 1000;
+    private static final long RECONNECT_INTERVAL = 20000;
+    private static final long CALL_QUEUE_INTERVAL = 3000;
 
     private static boolean sIsRunning;
 
@@ -35,9 +31,6 @@ public class LongRunningService extends Service {
     private boolean mWasReconnectRequest;
     private Handler mHandler;
     private Runnable mLastCallback;
-
-    private int mCallCount = 0;
-    private DateFormat mDateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 
     private StatsKeyValueStore mStatsStore;
 
@@ -120,9 +113,10 @@ public class LongRunningService extends Service {
 
         Session wampSession = new Session();
         wampSession.addOnJoinListener(this::onJoin);
-        wampSession.addOnLeaveListener((session, closeDetails) -> Log.i(TAG, "LEFT"));
+        wampSession.addOnLeaveListener((session, closeDetails) -> {
+            Log.i(TAG, String.format("LEAVE, reason=%s", closeDetails.reason));
+        });
         wampSession.addOnDisconnectListener((session, b) -> {
-            mCallCount = 0;
             Log.i(TAG, String.format("DISCONNECTED, clean=%s", b));
             connectToServer(getApplicationContext());
         });
@@ -133,7 +127,7 @@ public class LongRunningService extends Service {
         Client client = new Client(wampSession, "ws://178.62.69.210:8080/ws", "realm1", auth);
 
         TransportOptions options = new TransportOptions();
-        options.setAutoPingInterval(60);
+        options.setAutoPingInterval(66);
         client.connect(options).whenComplete((exitInfo, throwable) -> {
             if (throwable != null) {
                 throwable.printStackTrace();
@@ -141,13 +135,8 @@ public class LongRunningService extends Service {
         });
     }
 
-    private String heartBeat() {
-        mCallCount++;
-        Log.i(TAG, String.format("Called procedure %s", mCallCount));
-        return String.format("Beats count %s, %s", mCallCount, mDateFormat.format(new Date()));
-    }
-
     private String stats() {
+        Log.i(TAG, "Called stats");
         int crashCount = mStatsStore.getServiceCrashCount();
         int successCount = mStatsStore.getConnectionSuccessCount();
         int failureCount = mStatsStore.getConnectionFailureCount();
@@ -159,16 +148,9 @@ public class LongRunningService extends Service {
 
     private void onJoin(Session session, SessionDetails details) {
         mStatsStore.appendConnectionSuccessCount();
+
         RegisterOptions options = new RegisterOptions(
                 RegisterOptions.MATCH_EXACT, RegisterOptions.INVOKE_ROUNDROBIN);
-        String proc1 = "network.xbr.heartbeat";
-        session.register(proc1, this::heartBeat, options).whenComplete((registration, throwable) -> {
-            if (throwable == null) {
-                Log.i(TAG, String.format("Registered procedure %s", proc1));
-            } else {
-                throwable.printStackTrace();
-            }
-        });
 
         String proc2 = "network.xbr.connection_stats";
         session.register(proc2, this::stats, options).whenComplete((registration, throwable) -> {
