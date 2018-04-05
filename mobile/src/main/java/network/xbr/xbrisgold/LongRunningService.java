@@ -25,18 +25,12 @@ public class LongRunningService extends Service {
     private static final long RECONNECT_INTERVAL = 20000;
     private static final long CALL_QUEUE_INTERVAL = 3000;
 
-    private static boolean sIsRunning;
-
     private long mLastConnectRequestTime;
     private boolean mWasReconnectRequest;
     private Handler mHandler;
     private Runnable mLastCallback;
 
     private StatsKeyValueStore mStatsStore;
-
-    public static boolean isRunning() {
-        return sIsRunning;
-    }
 
     private BroadcastReceiver mNetworkStateChangeListener = new BroadcastReceiver() {
         @Override
@@ -54,7 +48,6 @@ public class LongRunningService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i(TAG, String.format("Crash count: %s", mStatsStore.getServiceCrashCount()));
-        sIsRunning = true;
         mHandler = new Handler();
         registerReceiver(mNetworkStateChangeListener,
                 new IntentFilter("android.net.conn.CONNECTIVITY_CHANGE"));
@@ -66,7 +59,6 @@ public class LongRunningService extends Service {
     public void onDestroy() {
         unregisterReceiver(mNetworkStateChangeListener);
         super.onDestroy();
-        sIsRunning = false;
         mStatsStore.appendServiceCrashCount();
     }
 
