@@ -1,5 +1,7 @@
 package network.xbr.xbrisgold;
 
+import android.app.ActivityManager;
+import android.app.ActivityManager.RunningServiceInfo;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -40,8 +42,18 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private boolean isServiceRunning() {
+        ActivityManager manager = getSystemService(ActivityManager.class);
+        for (RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (LongRunningService.class.getName().equals(service.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void startBackgroundService() {
-        if (!LongRunningService.isRunning()) {
+        if (!isServiceRunning()) {
             startService(new Intent(getApplicationContext(), LongRunningService.class));
         }
     }

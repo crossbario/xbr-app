@@ -6,55 +6,31 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.IBinder;
-import android.preference.PreferenceManager;
-import android.support.annotation.Nullable;
 import android.util.Log;
-
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.concurrent.CompletableFuture;
 
 import io.crossbar.autobahn.wamp.Client;
 import io.crossbar.autobahn.wamp.Session;
 import io.crossbar.autobahn.wamp.auth.CryptosignAuth;
 import io.crossbar.autobahn.wamp.interfaces.IAuthenticator;
-import io.crossbar.autobahn.wamp.types.Registration;
+import io.crossbar.autobahn.wamp.types.RegisterOptions;
 import io.crossbar.autobahn.wamp.types.SessionDetails;
+import io.crossbar.autobahn.wamp.types.TransportOptions;
+import network.xbr.xbrisgold.database.StatsKeyValueStore;
 
 public class LongRunningService extends Service {
 
     private static final String TAG = LongRunningService.class.getName();
-    private static final long RECONNECT_INTERVAL = 10000;
-    private static final long CALL_QUEUE_INTERVAL = 1000;
-
-    private static boolean sIsRunning;
+    private static final long RECONNECT_INTERVAL = 20000;
+    private static final long CALL_QUEUE_INTERVAL = 3000;
 
     private long mLastConnectRequestTime;
     private boolean mWasReconnectRequest;
     private Handler mHandler;
     private Runnable mLastCallback;
 
-    private int mCallCount = 1;
-    private DateFormat mDateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-
-    private void appendCrashCount() {
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
-        int currentCount = preferences.getInt("crash_count", 0);
-        preferences.edit().putInt("crash_count", currentCount + 1).apply();
-    }
-
-    private int getCrashCount() {
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
-        return preferences.getInt("crash_count", 0);
-    }
-
-    public static boolean isRunning() {
-        return sIsRunning;
-    }
+    private StatsKeyValueStore mStatsStore;
 
     private BroadcastReceiver mNetworkStateChangeListener = new BroadcastReceiver() {
         @Override
@@ -64,9 +40,14 @@ public class LongRunningService extends Service {
     };
 
     @Override
+    public void onCreate() {
+        super.onCreate();
+        mStatsStore = StatsKeyValueStore.getInstance(getApplicationContext());
+    }
+
+    @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.i(TAG, String.format("Crash count: %s", getCrashCount()));
-        sIsRunning = true;
+        Log.i(TAG, String.format("Crash count: %s", mStatsStore.getServiceCrashCount()));
         mHandler = new Handler();
         registerReceiver(mNetworkStateChangeListener,
                 new IntentFilter("android.net.conn.CONNECTIVITY_CHANGE"));
@@ -78,13 +59,12 @@ public class LongRunningService extends Service {
     public void onDestroy() {
         unregisterReceiver(mNetworkStateChangeListener);
         super.onDestroy();
-        sIsRunning = false;
-        appendCrashCount();
+        mStatsStore.appendServiceCrashCount();
     }
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {
-        appendCrashCount();
+        mStatsStore.appendServiceCrashCount();
     }
 
     private long getTimeSinceLastConnectRequest() {
@@ -121,9 +101,13 @@ public class LongRunningService extends Service {
     }
 
     private void actuallyConnect() {
+        mStatsStore.appendConnectionAttemptsCount();
+
         Session wampSession = new Session();
         wampSession.addOnJoinListener(this::onJoin);
-        wampSession.addOnLeaveListener((session, closeDetails) -> Log.i(TAG, "LEFT"));
+        wampSession.addOnLeaveListener((session, closeDetails) -> {
+            Log.i(TAG, String.format("LEAVE, reason=%s", closeDetails.reason));
+        });
         wampSession.addOnDisconnectListener((session, b) -> {
             Log.i(TAG, String.format("DISCONNECTED, clean=%s", b));
             connectToServer(getApplicationContext());
@@ -133,32 +117,43 @@ public class LongRunningService extends Service {
                 "ef83d35678742e01fa412d597cd3909c113b12a8a7dc101cba073c0423c9db41",
                 "e5b0d24af05c77d644de885946147aeb4fa6897a5cf4eb14347c3d637664b117");
         Client client = new Client(wampSession, "ws://178.62.69.210:8080/ws", "realm1", auth);
-        client.connect().whenComplete((exitInfo, throwable) -> {
+
+        TransportOptions options = new TransportOptions();
+        options.setAutoPingInterval(66);
+        client.connect(options).whenComplete((exitInfo, throwable) -> {
             if (throwable != null) {
                 throwable.printStackTrace();
             }
         });
     }
 
-    private String heartBeat() {
-        System.out.println(String.format("Called count: %s", mCallCount));
-        String response = String.format("Beats count %s, %s", mCallCount,
-                mDateFormat.format(new Date()));
-        mCallCount++;
-        return response;
+    private String stats() {
+        Log.i(TAG, "Called stats");
+        int crashCount = mStatsStore.getServiceCrashCount();
+        int successCount = mStatsStore.getConnectionSuccessCount();
+        int failureCount = mStatsStore.getConnectionFailureCount();
+        int retriesCount = mStatsStore.getConnectionRetriesCount();
+
+        return String.format("crash: %s, success %s, failure %s, retries %s",
+                crashCount, successCount, failureCount, retriesCount);
     }
 
     private void onJoin(Session session, SessionDetails details) {
-        CompletableFuture<Registration> regFuture = session.register(
-                "network.xbr.heartbeat", this::heartBeat);
-        regFuture.whenComplete((registration, throwable) -> {
+        mStatsStore.appendConnectionSuccessCount();
+
+        RegisterOptions options = new RegisterOptions(
+                RegisterOptions.MATCH_EXACT, RegisterOptions.INVOKE_ROUNDROBIN);
+
+        String proc2 = "network.xbr.connection_stats";
+        session.register(proc2, this::stats, options).whenComplete((registration, throwable) -> {
             if (throwable == null) {
-                System.out.println("Registered");
+                Log.i(TAG, String.format("Registered procedure %s", proc2));
+            } else {
+                throwable.printStackTrace();
             }
         });
     }
 
-    @Nullable
     @Override
     public IBinder onBind(Intent intent) {
         return null;
