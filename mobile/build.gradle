@@ -28,4 +28,8 @@ dependencies {
     wearApp project(':wear')
     implementation 'com.google.android.gms:play-services-wearable:12.0.1'
     implementation 'io.crossbar.autobahn:autobahn-android:18.3.2'
+
+    // For Room database
+    implementation "android.arch.persistence.room:runtime:1.0.0"
+    annotationProcessor "android.arch.persistence.room:compiler:1.0.0"
 }

@@ -2,6 +2,7 @@ package network.xbr.xbrisgold;
 
 
 import android.app.Service;
+import android.arch.persistence.room.Room;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -10,6 +11,9 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 
+import java.util.Date;
+import java.util.concurrent.CompletableFuture;
+
 import io.crossbar.autobahn.wamp.Client;
 import io.crossbar.autobahn.wamp.Session;
 import io.crossbar.autobahn.wamp.auth.CryptosignAuth;
@@ -17,6 +21,8 @@ import io.crossbar.autobahn.wamp.interfaces.IAuthenticator;
 import io.crossbar.autobahn.wamp.types.RegisterOptions;
 import io.crossbar.autobahn.wamp.types.SessionDetails;
 import io.crossbar.autobahn.wamp.types.TransportOptions;
+import network.xbr.xbrisgold.database.AppDatabase;
+import network.xbr.xbrisgold.database.DisconnectionStat;
 import network.xbr.xbrisgold.database.StatsKeyValueStore;
 
 public class LongRunningService extends Service {
@@ -31,6 +37,7 @@ public class LongRunningService extends Service {
     private Runnable mLastCallback;
 
     private StatsKeyValueStore mStatsStore;
+    private AppDatabase mStatsDB;
 
     private BroadcastReceiver mNetworkStateChangeListener = new BroadcastReceiver() {
         @Override
@@ -43,6 +50,8 @@ public class LongRunningService extends Service {
     public void onCreate() {
         super.onCreate();
         mStatsStore = StatsKeyValueStore.getInstance(getApplicationContext());
+        mStatsDB = Room.databaseBuilder(getApplicationContext(), AppDatabase.class,
+                "connection-stats").build();
     }
 
     @Override
@@ -107,6 +116,14 @@ public class LongRunningService extends Service {
         wampSession.addOnJoinListener(this::onJoin);
         wampSession.addOnLeaveListener((session, closeDetails) -> {
             Log.i(TAG, String.format("LEAVE, reason=%s", closeDetails.reason));
+            DisconnectionStat stat = new DisconnectionStat();
+            stat.reason = closeDetails.reason;
+            stat.time = new Date(System.currentTimeMillis()).toString();
+            stat.wasNetworkAvailable = Helpers.isNetworkAvailable(getApplicationContext());
+            new Thread(() -> {
+                mStatsDB.getDCStatDao().insert(stat);
+                Log.i(TAG, "Insert new stat");
+            }).start();
         });
         wampSession.addOnDisconnectListener((session, b) -> {
             Log.i(TAG, String.format("DISCONNECTED, clean=%s", b));
@@ -127,15 +144,25 @@ public class LongRunningService extends Service {
         });
     }
 
-    private String stats() {
+    private CompletableFuture<String> stats() {
+        CompletableFuture<String> future = new CompletableFuture<>();
         Log.i(TAG, "Called stats");
         int crashCount = mStatsStore.getServiceCrashCount();
         int successCount = mStatsStore.getConnectionSuccessCount();
         int failureCount = mStatsStore.getConnectionFailureCount();
         int retriesCount = mStatsStore.getConnectionRetriesCount();
 
-        return String.format("crash: %s, success %s, failure %s, retries %s",
-                crashCount, successCount, failureCount, retriesCount);
+        new Thread(() -> {
+            for (DisconnectionStat stat: mStatsDB.getDCStatDao().getAll()) {
+                Log.i(TAG, stat.toString());
+            }
+            String res = String.format("crash: %s, success %s, failure %s, retries %s",
+                    crashCount, successCount, failureCount, retriesCount);
+            Log.i(TAG, res);
+            future.complete(res);
+        }).start();
+
+        return future;
     }
 
     private void onJoin(Session session, SessionDetails details) {
