@@ -18,6 +18,7 @@ import io.crossbar.autobahn.wamp.Client;
 import io.crossbar.autobahn.wamp.Session;
 import io.crossbar.autobahn.wamp.auth.CryptosignAuth;
 import io.crossbar.autobahn.wamp.interfaces.IAuthenticator;
+import io.crossbar.autobahn.wamp.types.InvocationResult;
 import io.crossbar.autobahn.wamp.types.RegisterOptions;
 import io.crossbar.autobahn.wamp.types.SessionDetails;
 import io.crossbar.autobahn.wamp.types.TransportOptions;
@@ -144,8 +145,8 @@ public class LongRunningService extends Service {
         });
     }
 
-    private CompletableFuture<String> stats() {
-        CompletableFuture<String> future = new CompletableFuture<>();
+    private CompletableFuture<InvocationResult> stats() {
+        CompletableFuture<InvocationResult> future = new CompletableFuture<>();
         Log.i(TAG, "Called stats");
         int crashCount = mStatsStore.getServiceCrashCount();
         int successCount = mStatsStore.getConnectionSuccessCount();
@@ -159,7 +160,7 @@ public class LongRunningService extends Service {
             String res = String.format("crash: %s, success %s, failure %s, retries %s",
                     crashCount, successCount, failureCount, retriesCount);
             Log.i(TAG, res);
-            future.complete(res);
+            future.complete(new InvocationResult(res));
         }).start();
 
         return future;
