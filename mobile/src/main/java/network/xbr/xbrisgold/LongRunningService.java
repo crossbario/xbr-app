@@ -88,7 +88,8 @@ public class LongRunningService extends Service {
                 mHandler.removeCallbacks(mLastCallback);
             } else if (!mWasReconnectRequest
                     && getTimeSinceLastConnectRequest() < CALL_QUEUE_INTERVAL) {
-                Log.i(TAG, "REMOVE");
+                Log.i(TAG, "Remove previous connect request as new arrived before " +
+                        "CALL_QUEUE_INTERVAL timeout");
                 mHandler.removeCallbacks(mLastCallback);
             }
 
@@ -121,6 +122,8 @@ public class LongRunningService extends Service {
             stat.reason = closeDetails.reason;
             stat.time = new Date(System.currentTimeMillis()).toString();
             stat.wasNetworkAvailable = Helpers.isNetworkAvailable(getApplicationContext());
+
+            // Reading/Writing to databases need to be done on a separate thread.
             new Thread(() -> {
                 mStatsDB.getDCStatDao().insert(stat);
                 Log.i(TAG, "Insert new stat");
