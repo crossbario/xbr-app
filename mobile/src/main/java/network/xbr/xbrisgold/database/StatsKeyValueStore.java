@@ -11,6 +11,7 @@ public class StatsKeyValueStore {
     private static final String KEY_CONN_FAIL_COUNT = "connection_fail_count";
     private static final String KEY_CONN_RETRY_COUNT = "connection_retry_count";
     private static final String KEY_SERVICE_CRASH_COUNT = "service_crash_count";
+    private static final String KEY_APP_NETWORK_USAGE = "network_usage_bytes";
 
     private static StatsKeyValueStore sInstance;
 
@@ -76,5 +77,14 @@ public class StatsKeyValueStore {
 
     public void appendServiceCrashCount() {
         appendCount(KEY_SERVICE_CRASH_COUNT);
+    }
+
+    public long getAppNetworkUsageBytes() {
+        return mPreferences.getLong(KEY_APP_NETWORK_USAGE, 0);
+    }
+
+    public void appendAppNetworkUsage(long bytes) {
+        mEditor.putLong(KEY_APP_NETWORK_USAGE, getAppNetworkUsageBytes() + bytes);
+        mEditor.apply();
     }
 }
