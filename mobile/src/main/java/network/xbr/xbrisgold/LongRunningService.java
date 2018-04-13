@@ -7,11 +7,11 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.TrafficStats;
 import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 
-import java.util.Date;
 import java.util.concurrent.CompletableFuture;
 
 import io.crossbar.autobahn.wamp.Client;
@@ -20,10 +20,12 @@ import io.crossbar.autobahn.wamp.auth.CryptosignAuth;
 import io.crossbar.autobahn.wamp.interfaces.IAuthenticator;
 import io.crossbar.autobahn.wamp.types.InvocationResult;
 import io.crossbar.autobahn.wamp.types.RegisterOptions;
+import io.crossbar.autobahn.wamp.types.Registration;
 import io.crossbar.autobahn.wamp.types.SessionDetails;
 import io.crossbar.autobahn.wamp.types.TransportOptions;
 import network.xbr.xbrisgold.database.AppDatabase;
 import network.xbr.xbrisgold.database.DisconnectionStat;
+import network.xbr.xbrisgold.database.NetworkUsageStat;
 import network.xbr.xbrisgold.database.StatsKeyValueStore;
 
 public class LongRunningService extends Service {
@@ -31,12 +33,14 @@ public class LongRunningService extends Service {
     private static final String TAG = LongRunningService.class.getName();
     private static final long RECONNECT_INTERVAL = 20000;
     private static final long CALL_QUEUE_INTERVAL = 3000;
+    private static final RegisterOptions REGISTER_OPTIONS = new RegisterOptions(
+            RegisterOptions.MATCH_EXACT, RegisterOptions.INVOKE_ROUNDROBIN);
+    private static final String PROC_NET_STATS = "network.xbr.connection_stats";
 
     private long mLastConnectRequestTime;
     private boolean mWasReconnectRequest;
     private Handler mHandler;
     private Runnable mLastCallback;
-
     private StatsKeyValueStore mStatsStore;
     private AppDatabase mStatsDB;
 
@@ -67,8 +71,8 @@ public class LongRunningService extends Service {
 
     @Override
     public void onDestroy() {
-        unregisterReceiver(mNetworkStateChangeListener);
         super.onDestroy();
+        unregisterReceiver(mNetworkStateChangeListener);
         mStatsStore.appendServiceCrashCount();
     }
 
@@ -112,27 +116,45 @@ public class LongRunningService extends Service {
     }
 
     private void actuallyConnect() {
+        NetworkUsageStat networkUsageStat = new NetworkUsageStat();
         mStatsStore.appendConnectionAttemptsCount();
 
+        int UID = android.os.Process.myUid();
+        long bytesRxBefore = TrafficStats.getUidRxBytes(UID);
+        long bytesTxBefore = TrafficStats.getUidTxBytes(UID);
+
         Session wampSession = new Session();
+        wampSession.addOnConnectListener(session -> {
+            networkUsageStat.connectTime = System.currentTimeMillis();
+        });
         wampSession.addOnJoinListener(this::onJoin);
         wampSession.addOnLeaveListener((session, closeDetails) -> {
             Log.i(TAG, String.format("LEAVE, reason=%s", closeDetails.reason));
             DisconnectionStat stat = new DisconnectionStat();
             stat.reason = closeDetails.reason;
-            stat.time = new Date(System.currentTimeMillis()).toString();
+            stat.time = Helpers.getCurrentDate();
             stat.wasNetworkAvailable = Helpers.isNetworkAvailable(getApplicationContext());
 
-            // Reading/Writing to databases need to be done on a separate thread.
-            new Thread(() -> {
+            Helpers.callInThread(() -> {
                 mStatsDB.getDCStatDao().insert(stat);
                 Log.i(TAG, "Insert new stat");
-            }).start();
+            });
         });
         wampSession.addOnDisconnectListener((session, b) -> {
+            networkUsageStat.disconnectTime = System.currentTimeMillis();
+            long bytesRx = TrafficStats.getUidRxBytes(UID) - bytesRxBefore;
+            long bytesTx = TrafficStats.getUidTxBytes(UID) - bytesTxBefore;
+            long bytesTotal = bytesRx + bytesTx;
+            mStatsStore.appendAppNetworkUsage(bytesTotal);
+            networkUsageStat.bytesReceived = bytesRx;
+            networkUsageStat.bytesSent = bytesTx;
+            networkUsageStat.totalBytes = bytesTotal;
+            Helpers.callInThread(() -> mStatsDB.getNetworkStatDao().insert(networkUsageStat));
+
             Log.i(TAG, String.format("DISCONNECTED, clean=%s", b));
             connectToServer(getApplicationContext());
         });
+
         IAuthenticator auth = new CryptosignAuth(
                 "test@crossbario.com",
                 "ef83d35678742e01fa412d597cd3909c113b12a8a7dc101cba073c0423c9db41",
@@ -141,6 +163,7 @@ public class LongRunningService extends Service {
 
         TransportOptions options = new TransportOptions();
         options.setAutoPingInterval(66);
+        networkUsageStat.connectRequestTime = System.currentTimeMillis();
         client.connect(options).whenComplete((exitInfo, throwable) -> {
             if (throwable != null) {
                 throwable.printStackTrace();
@@ -156,29 +179,26 @@ public class LongRunningService extends Service {
         int failureCount = mStatsStore.getConnectionFailureCount();
         int retriesCount = mStatsStore.getConnectionRetriesCount();
 
-        new Thread(() -> {
+        String res = String.format("crash: %s, success %s, failure %s, retries %s",
+                crashCount, successCount, failureCount, retriesCount);
+        Helpers.callInThread(() -> {
             for (DisconnectionStat stat: mStatsDB.getDCStatDao().getAll()) {
                 Log.i(TAG, stat.toString());
             }
-            String res = String.format("crash: %s, success %s, failure %s, retries %s",
-                    crashCount, successCount, failureCount, retriesCount);
             Log.i(TAG, res);
             future.complete(new InvocationResult(res));
-        }).start();
+        });
 
         return future;
     }
 
     private void onJoin(Session session, SessionDetails details) {
         mStatsStore.appendConnectionSuccessCount();
-
-        RegisterOptions options = new RegisterOptions(
-                RegisterOptions.MATCH_EXACT, RegisterOptions.INVOKE_ROUNDROBIN);
-
-        String proc2 = "network.xbr.connection_stats";
-        session.register(proc2, this::stats, options).whenComplete((registration, throwable) -> {
+        CompletableFuture<Registration> regFuture = session.register(
+                PROC_NET_STATS, this::stats, REGISTER_OPTIONS);
+        regFuture.whenComplete((registration, throwable) -> {
             if (throwable == null) {
-                Log.i(TAG, String.format("Registered procedure %s", proc2));
+                Log.i(TAG, String.format("Registered procedure %s", PROC_NET_STATS));
             } else {
                 throwable.printStackTrace();
             }

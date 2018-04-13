@@ -4,6 +4,7 @@ import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
 import android.content.Context;
 import android.content.Intent;
+import android.net.TrafficStats;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.PowerManager;
@@ -28,6 +29,14 @@ public class MainActivity extends AppCompatActivity {
         } else {
             startBackgroundService();
         }
+
+        int UID = android.os.Process.myUid();
+
+        long receivedBytes = TrafficStats.getUidRxBytes(UID) / 1000;
+        long sentBytes = TrafficStats.getUidTxBytes(UID) / 1000;
+
+        System.out.println(String.format("Uploaded kilo bytes=%s, downloaded kilo bytes=%s",
+                sentBytes, receivedBytes));
     }
 
     @Override

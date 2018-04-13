@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.util.Date;
 import java.util.concurrent.CompletableFuture;
 
 public class Helpers {
@@ -47,5 +48,13 @@ public class Helpers {
         }
 
         return sInternetFuture;
+    }
+
+    public static void callInThread(Runnable runnable) {
+        new Thread(runnable).start();
+    }
+
+    public static String getCurrentDate() {
+        return new Date(System.currentTimeMillis()).toString();
     }
 }
