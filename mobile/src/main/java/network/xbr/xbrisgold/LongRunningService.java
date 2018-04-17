@@ -12,13 +12,22 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import io.crossbar.autobahn.wamp.Client;
 import io.crossbar.autobahn.wamp.Session;
 import io.crossbar.autobahn.wamp.auth.CryptosignAuth;
 import io.crossbar.autobahn.wamp.interfaces.IAuthenticator;
 import io.crossbar.autobahn.wamp.types.InvocationResult;
+import io.crossbar.autobahn.wamp.types.Publication;
 import io.crossbar.autobahn.wamp.types.RegisterOptions;
 import io.crossbar.autobahn.wamp.types.Registration;
 import io.crossbar.autobahn.wamp.types.SessionDetails;
@@ -27,6 +36,8 @@ import network.xbr.xbrisgold.database.AppDatabase;
 import network.xbr.xbrisgold.database.DisconnectionStat;
 import network.xbr.xbrisgold.database.NetworkUsageStat;
 import network.xbr.xbrisgold.database.StatsKeyValueStore;
+import network.xbr.xbrisgold.database.WAMPLatencyStat;
+import network.xbr.xbrisgold.database.WAMPLatencyStatDao;
 
 public class LongRunningService extends Service {
 
@@ -203,6 +214,27 @@ public class LongRunningService extends Service {
                 throwable.printStackTrace();
             }
         });
+
+        WAMPLatencyStatDao latencyStatDao = mStatsDB.getWAMPLatencyStatDao();
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        executor.scheduleWithFixedDelay(() -> {
+            WAMPLatencyStat stat = new WAMPLatencyStat();
+            stat.timeSent = System.currentTimeMillis();
+            CompletableFuture<Publication> pubFuture = session.publish("network.xbr.wamp_rtt");
+            pubFuture.whenComplete((publication, throwable) -> {
+                if (throwable == null) {
+                    stat.timeReceived = System.currentTimeMillis();
+                    Helpers.callInThread(() -> latencyStatDao.insert(stat));
+                    System.out.println(String.format("RTT: %s ms",
+                            stat.timeReceived - stat.timeSent));
+                }
+            });
+            try {
+                pubFuture.get();
+            } catch (InterruptedException | ExecutionException e) {
+                pubFuture.completeExceptionally(e);
+            }
+        }, 0, 2, TimeUnit.MINUTES);
     }
 
     @Override
