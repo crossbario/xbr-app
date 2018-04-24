@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory
+        android:title="Network Ping Policy WiFi">
+
+        <ListPreference
+            android:key="@string/key_policy_wifi_foreground"
+            android:title="App foreground"
+            android:dialogTitle="OK"
+            android:entries="@array/ping_policy_names"
+            android:entryValues="@array/ping_policy_values"
+            android:defaultValue="4"/>
+
+        <ListPreference
+            android:key="@string/key_policy_wifi_background"
+            android:title="App background"
+            android:dialogTitle="OK"
+            android:entries="@array/ping_policy_names"
+            android:entryValues="@array/ping_policy_values"
+            android:defaultValue="3"/>
+
+        <ListPreference
+            android:key="@string/key_policy_wifi_doze"
+            android:title="Device doze"
+            android:dialogTitle="OK"
+            android:entries="@array/ping_policy_names"
+            android:entryValues="@array/ping_policy_values"
+            android:defaultValue="3"/>
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="Network Ping Policy Mobile Data">
+
+        <ListPreference
+            android:key="@string/key_policy_mobile_data_foreground"
+            android:title="App foreground"
+            android:dialogTitle="OK"
+            android:entries="@array/ping_policy_names"
+            android:entryValues="@array/ping_policy_values"
+            android:defaultValue="4"/>
+
+        <ListPreference
+            android:key="@string/key_policy_mobile_data_background"
+            android:title="App background"
+            android:dialogTitle="OK"
+            android:entries="@array/ping_policy_names"
+            android:entryValues="@array/ping_policy_values"
+            android:defaultValue="3"/>
+
+        <ListPreference
+            android:key="@string/key_policy_mobile_data_doze"
+            android:title="Device doze"
+            android:dialogTitle="OK"
+            android:entries="@array/ping_policy_names"
+            android:entryValues="@array/ping_policy_values"
+            android:defaultValue="3"/>
+
+    </PreferenceCategory>
+</PreferenceScreen>

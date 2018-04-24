@@ -37,6 +37,10 @@ public class MainActivity extends AppCompatActivity {
 
         System.out.println(String.format("Uploaded kilo bytes=%s, downloaded kilo bytes=%s",
                 sentBytes, receivedBytes));
+
+        getFragmentManager().beginTransaction()
+                .replace(android.R.id.content, new SettingsFragment())
+                .commit();
     }
 
     @Override

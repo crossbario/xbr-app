@@ -7,9 +7,11 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.net.TrafficStats;
 import android.os.Handler;
 import android.os.IBinder;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import java.text.SimpleDateFormat;
@@ -39,7 +41,11 @@ import network.xbr.xbrisgold.database.StatsKeyValueStore;
 import network.xbr.xbrisgold.database.WAMPLatencyStat;
 import network.xbr.xbrisgold.database.WAMPLatencyStatDao;
 
-public class LongRunningService extends Service {
+public class LongRunningService extends Service
+        implements SharedPreferences.OnSharedPreferenceChangeListener {
+
+    public static final String NETWORK_PING_REQUENCY_CHANGE_BROADCASTER_INTENT =
+            "network.xbr.ping_interval_changed";
 
     private static final String TAG = LongRunningService.class.getName();
     private static final long RECONNECT_INTERVAL = 20000;
@@ -54,11 +60,19 @@ public class LongRunningService extends Service {
     private Runnable mLastCallback;
     private StatsKeyValueStore mStatsStore;
     private AppDatabase mStatsDB;
+    private SharedPreferences mSharedPreferences;
 
     private BroadcastReceiver mNetworkStateChangeListener = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             connectToServer(context);
+        }
+    };
+
+    private BroadcastReceiver mNetworkPingFrequencyChangeListener = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            System.out.println(intent.getAction());
         }
     };
 
@@ -68,6 +82,8 @@ public class LongRunningService extends Service {
         mStatsStore = StatsKeyValueStore.getInstance(getApplicationContext());
         mStatsDB = Room.databaseBuilder(getApplicationContext(), AppDatabase.class,
                 "connection-stats").build();
+        mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        mSharedPreferences.registerOnSharedPreferenceChangeListener(this);
     }
 
     @Override
@@ -76,6 +92,8 @@ public class LongRunningService extends Service {
         mHandler = new Handler();
         registerReceiver(mNetworkStateChangeListener,
                 new IntentFilter("android.net.conn.CONNECTIVITY_CHANGE"));
+        registerReceiver(mNetworkPingFrequencyChangeListener,
+                new IntentFilter(NETWORK_PING_REQUENCY_CHANGE_BROADCASTER_INTENT));
         // Automatically restarts the service if killed by the OS.
         return START_STICKY;
     }
@@ -84,12 +102,17 @@ public class LongRunningService extends Service {
     public void onDestroy() {
         super.onDestroy();
         unregisterReceiver(mNetworkStateChangeListener);
+        unregisterReceiver(mNetworkPingFrequencyChangeListener);
         mStatsStore.appendServiceCrashCount();
+        mSharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
     }
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {
+        unregisterReceiver(mNetworkStateChangeListener);
+        unregisterReceiver(mNetworkPingFrequencyChangeListener);
         mStatsStore.appendServiceCrashCount();
+        mSharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
     }
 
     private long getTimeSinceLastConnectRequest() {
@@ -240,5 +263,10 @@ public class LongRunningService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         return null;
+    }
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+
     }
 }
