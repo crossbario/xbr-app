@@ -3,6 +3,7 @@ package network.xbr.xbrisgold;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.PowerManager;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -17,7 +18,7 @@ public class Helpers {
     private static Thread sInternetCheckerThread;
     private static boolean sIsLastRunComplete;
 
-    private static NetworkInfo getNetworkInfo(Context ctx) {
+    public static NetworkInfo getNetworkInfo(Context ctx) {
         ConnectivityManager cm = ctx.getSystemService(ConnectivityManager.class);
         if (cm == null) {
             return null;
@@ -75,5 +76,10 @@ public class Helpers {
         NetworkInfo info = getNetworkInfo(ctx);
         return info != null && info.isConnected()
                 && info.getType() == ConnectivityManager.TYPE_MOBILE;
+    }
+
+    public static boolean isDozeMode(Context ctx) {
+        PowerManager pm = ctx.getSystemService(PowerManager.class);
+        return pm != null && pm.isDeviceIdleMode();
     }
 }

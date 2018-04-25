@@ -11,12 +11,18 @@ public class MainApplication extends Application {
     public static final String INTENT_APP_VISIBILITY_CHANGED = "network.xbr.app_visibility_changed";
 
     private LocalBroadcastManager mBroadcaster;
+    private AppLifecycleHandler mAppLifecycleHandler;
 
     @Override
     public void onCreate() {
         super.onCreate();
         mBroadcaster = LocalBroadcastManager.getInstance(getApplicationContext());
-        registerActivityLifecycleCallbacks(new AppLifecycleHandler());
+        mAppLifecycleHandler = new AppLifecycleHandler();
+        registerActivityLifecycleCallbacks(mAppLifecycleHandler);
+    }
+
+    public boolean isVisible() {
+        return mAppLifecycleHandler.isVisible();
     }
 
     private class AppLifecycleHandler implements Application.ActivityLifecycleCallbacks {
@@ -66,6 +72,10 @@ public class MainApplication extends Application {
         @Override
         public void onActivityDestroyed(Activity activity) {
 
+        }
+
+        public boolean isVisible() {
+            return mActivityStartedCount > 0;
         }
     }
 }

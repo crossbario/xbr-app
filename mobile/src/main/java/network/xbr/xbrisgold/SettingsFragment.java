@@ -5,10 +5,10 @@ import android.preference.PreferenceFragment;
 
 public class SettingsFragment extends PreferenceFragment {
     
-    public static final int POLICY_DISCONNECT = 1;
-    public static final int POLICY_NO_HEARTBEAT = 2;
-    public static final int POLICY_KEEP_ALIVE = 3;
-    public static final int POLICY_FREQUENT_HEARTBEAT = 4;
+    public static final String POLICY_DISCONNECT = "-1";
+    public static final String POLICY_NO_HEARTBEAT = "0";
+    public static final String POLICY_KEEP_ALIVE = "600";
+    public static final String POLICY_FREQUENT_HEARTBEAT = "10";
     
     @Override
     public void onCreate(Bundle savedInstanceState) {

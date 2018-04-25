@@ -9,6 +9,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.TrafficStats;
 import android.os.Handler;
 import android.os.IBinder;
@@ -60,6 +62,8 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
     private SharedPreferences mSharedPreferences;
     private LocalBroadcastManager mLocalBroadcaster;
 
+    private Client mWAMPClient;
+
     private BroadcastReceiver mStateChangeListener = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -70,13 +74,7 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
             if (action.equals(NETWORK_STATE_CHANGE_INTENT)) {
                 connectToServer(context);
             } else if (action.equals(MainApplication.INTENT_APP_VISIBILITY_CHANGED)) {
-                boolean isVisible = intent.getBooleanExtra("app_visible", true);
-                System.out.println("Is visible: " + isVisible);
-                if (Helpers.isWifiConnected(getApplicationContext())) {
-
-                } else if (Helpers.isMobileDataConnected(getApplicationContext())) {
-
-                }
+                applyPolicyChangeIfRequired();
             }
         }
     };
@@ -199,12 +197,12 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
                 "test@crossbario.com",
                 "ef83d35678742e01fa412d597cd3909c113b12a8a7dc101cba073c0423c9db41",
                 "e5b0d24af05c77d644de885946147aeb4fa6897a5cf4eb14347c3d637664b117");
-        Client client = new Client(wampSession, "ws://178.62.69.210:8080/ws", "realm1", auth);
+        mWAMPClient = new Client(wampSession, "ws://178.62.69.210:8080/ws", "realm1", auth);
 
         TransportOptions options = new TransportOptions();
-        options.setAutoPingInterval(66);
+        options.setAutoPingInterval(getProfilePingInterval());
         networkUsageStat.connectRequestTime = System.currentTimeMillis();
-        client.connect(options).whenComplete((exitInfo, throwable) -> {
+        mWAMPClient.connect(options).whenComplete((exitInfo, throwable) -> {
             if (throwable != null) {
                 throwable.printStackTrace();
             }
@@ -273,10 +271,49 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        if (key.equals(getString(R.string.key_policy_wifi_foreground))) {
-            System.out.println();
-        } else if (key.equals(getString(R.string.key_policy_mobile_data_foreground))) {
-            System.out.println();
+        if (key.equals(getString(R.string.key_policy_wifi_foreground))
+                || key.equals(getString(R.string.key_policy_mobile_data_foreground))) {
+            applyPolicyChangeIfRequired();
         }
+    }
+
+    private int getProfilePingInterval() {
+        MainApplication app = (MainApplication) getApplication();
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(
+                getApplicationContext());
+        NetworkInfo networkInfo = Helpers.getNetworkInfo(getApplicationContext());
+
+        if (networkInfo != null) {
+            if (networkInfo.getType() == ConnectivityManager.TYPE_WIFI) {
+                if (app.isVisible()) {
+                    return parseInt(prefs, getString(R.string.key_policy_wifi_foreground));
+                } else if (Helpers.isDozeMode(getApplication())) {
+                    return parseInt(prefs, getString(R.string.key_policy_wifi_doze));
+                } else {
+                    return parseInt(prefs, getString(R.string.key_policy_wifi_background));
+                }
+            } else if (networkInfo.getType() == ConnectivityManager.TYPE_MOBILE) {
+                if (app.isVisible()) {
+                    return parseInt(prefs, getString(R.string.key_policy_mobile_data_foreground));
+                } else if (Helpers.isDozeMode(getApplication())) {
+                    return parseInt(prefs, getString(R.string.key_policy_mobile_data_doze));
+                } else {
+                    return parseInt(prefs, getString(R.string.key_policy_mobile_data_background));
+                }
+            }
+        }
+
+        // Random default.
+        return 66;
+    }
+
+    private int parseInt(SharedPreferences sharedPreferences, String key) {
+        return Integer.parseInt(sharedPreferences.getString(key, null));
+    }
+
+    private void applyPolicyChangeIfRequired() {
+        TransportOptions options = new TransportOptions();
+        options.setAutoPingInterval(getProfilePingInterval());
+        // mWAMPClient.setOptions(options);
     }
 }
