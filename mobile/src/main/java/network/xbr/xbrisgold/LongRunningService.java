@@ -41,10 +41,6 @@ import network.xbr.xbrisgold.database.WAMPLatencyStatDao;
 public class LongRunningService extends Service
         implements SharedPreferences.OnSharedPreferenceChangeListener {
 
-    public static final String NETWORK_PING_FREQUENCY_CHANGE_BROADCASTER_INTENT =
-            "network.xbr.ping_interval_changed";
-//    public static final String APP_VISIBILITY_CHANGE_INTENT;
-
     private static final String TAG = LongRunningService.class.getName();
     private static final String NETWORK_STATE_CHANGE_INTENT =
             "android.net.conn.CONNECTIVITY_CHANGE";
@@ -61,22 +57,25 @@ public class LongRunningService extends Service
     private StatsKeyValueStore mStatsStore;
     private AppDatabase mStatsDB;
     private SharedPreferences mSharedPreferences;
-    private LocalBroadcastManager mBroadcaster;
+    private LocalBroadcastManager mLocalBroadcaster;
 
-    private BroadcastReceiver mStatesChangeListener = new BroadcastReceiver() {
+    private BroadcastReceiver mStateChangeListener = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             if (action == null) {
                 return;
             }
-
             if (action.equals(NETWORK_STATE_CHANGE_INTENT)) {
                 connectToServer(context);
-            } else if (action.equals(NETWORK_PING_FREQUENCY_CHANGE_BROADCASTER_INTENT)) {
+            } else if (action.equals(MainApplication.INTENT_APP_VISIBILITY_CHANGED)) {
+                boolean isVisible = intent.getBooleanExtra("app_visible", true);
+                System.out.println("Is visible: " + isVisible);
+                if (Helpers.isWifiConnected(getApplicationContext())) {
 
-            } else if (action.equals("something else")) {
+                } else if (Helpers.isMobileDataConnected(getApplicationContext())) {
 
+                }
             }
         }
     };
@@ -89,18 +88,17 @@ public class LongRunningService extends Service
                 "connection-stats").build();
         mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         mSharedPreferences.registerOnSharedPreferenceChangeListener(this);
-        mBroadcaster = LocalBroadcastManager.getInstance(getApplicationContext());
+        mLocalBroadcaster = LocalBroadcastManager.getInstance(getApplicationContext());
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i(TAG, String.format("Crash count: %s", mStatsStore.getServiceCrashCount()));
         mHandler = new Handler();
-        registerReceiver(mStatesChangeListener, new IntentFilter(NETWORK_STATE_CHANGE_INTENT));
-        mBroadcaster.registerReceiver(
-                mStatesChangeListener,
-                new IntentFilter(NETWORK_PING_FREQUENCY_CHANGE_BROADCASTER_INTENT)
-        );
+        registerReceiver(mStateChangeListener,
+                new IntentFilter(NETWORK_STATE_CHANGE_INTENT));
+        mLocalBroadcaster.registerReceiver(mStateChangeListener,
+                new IntentFilter(MainApplication.INTENT_APP_VISIBILITY_CHANGED));
         // Automatically restarts the service if killed by the OS.
         return START_STICKY;
     }
@@ -108,16 +106,16 @@ public class LongRunningService extends Service
     @Override
     public void onDestroy() {
         super.onDestroy();
-        unregisterReceiver(mStatesChangeListener);
-        mBroadcaster.unregisterReceiver(mStatesChangeListener);
+        unregisterReceiver(mStateChangeListener);
+        mLocalBroadcaster.unregisterReceiver(mStateChangeListener);
         mStatsStore.appendServiceCrashCount();
         mSharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
     }
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {
-        unregisterReceiver(mStatesChangeListener);
-        mBroadcaster.unregisterReceiver(mStatesChangeListener);
+        unregisterReceiver(mStateChangeListener);
+        mLocalBroadcaster.unregisterReceiver(mStateChangeListener);
         mStatsStore.appendServiceCrashCount();
         mSharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
     }
@@ -274,6 +272,10 @@ public class LongRunningService extends Service
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-
+        if (key.equals(getString(R.string.key_policy_wifi_foreground))) {
+            System.out.println();
+        } else if (key.equals(getString(R.string.key_policy_mobile_data_foreground))) {
+            System.out.println();
+        }
     }
 }

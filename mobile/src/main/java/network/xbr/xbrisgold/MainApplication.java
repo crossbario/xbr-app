@@ -8,19 +8,15 @@ import android.support.v4.content.LocalBroadcastManager;
 
 public class MainApplication extends Application {
 
-    private AppLifecycleHandler mAppLifecycleHandler;
+    public static final String INTENT_APP_VISIBILITY_CHANGED = "network.xbr.app_visibility_changed";
+
     private LocalBroadcastManager mBroadcaster;
 
     @Override
     public void onCreate() {
         super.onCreate();
         mBroadcaster = LocalBroadcastManager.getInstance(getApplicationContext());
-        mAppLifecycleHandler = new AppLifecycleHandler();
-        registerActivityLifecycleCallbacks(mAppLifecycleHandler);
-    }
-
-    public boolean isForeground() {
-        return mAppLifecycleHandler.isAppForeground();
+        registerActivityLifecycleCallbacks(new AppLifecycleHandler());
     }
 
     private class AppLifecycleHandler implements Application.ActivityLifecycleCallbacks {
@@ -36,7 +32,9 @@ public class MainApplication extends Application {
         public void onActivityStarted(Activity activity) {
             mActivityStartedCount++;
             if (mActivityStartedCount == 1) {
-                mBroadcaster.sendBroadcast(new Intent());
+                Intent intent = new Intent(INTENT_APP_VISIBILITY_CHANGED);
+                intent.putExtra("app_visible", true);
+                mBroadcaster.sendBroadcast(intent);
             }
         }
 
@@ -54,7 +52,9 @@ public class MainApplication extends Application {
         public void onActivityStopped(Activity activity) {
             mActivityStartedCount--;
             if (mActivityStartedCount == 0) {
-                mBroadcaster.sendBroadcast(new Intent());
+                Intent intent = new Intent(INTENT_APP_VISIBILITY_CHANGED);
+                intent.putExtra("app_visible", false);
+                mBroadcaster.sendBroadcast(intent);
             }
         }
 
@@ -66,10 +66,6 @@ public class MainApplication extends Application {
         @Override
         public void onActivityDestroyed(Activity activity) {
 
-        }
-
-        public boolean isAppForeground() {
-            return mActivityStartedCount > 0;
         }
     }
 }
