@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.net.TrafficStats;
 import android.os.Handler;
 import android.os.IBinder;
@@ -38,14 +39,14 @@ import network.xbr.xbrisgold.database.StatsKeyValueStore;
 import network.xbr.xbrisgold.database.WAMPLatencyStat;
 import network.xbr.xbrisgold.database.WAMPLatencyStatDao;
 
-public class LongRunningService extends Service
-        implements SharedPreferences.OnSharedPreferenceChangeListener {
+public class LongRunningService extends Service implements OnSharedPreferenceChangeListener {
 
     private static final String TAG = LongRunningService.class.getName();
     private static final String NETWORK_STATE_CHANGE_INTENT =
             "android.net.conn.CONNECTIVITY_CHANGE";
     private static final long RECONNECT_INTERVAL = 20000;
     private static final long CALL_QUEUE_INTERVAL = 3000;
+
     private static final RegisterOptions REGISTER_OPTIONS = new RegisterOptions(
             RegisterOptions.MATCH_EXACT, RegisterOptions.INVOKE_ROUNDROBIN);
     private static final String PROC_NET_STATS = "network.xbr.connection_stats";
