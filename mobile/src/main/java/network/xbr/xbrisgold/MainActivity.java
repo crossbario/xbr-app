@@ -34,14 +34,7 @@ public class MainActivity extends AppCompatActivity {
             startBackgroundService();
         }
 
-        int UID = android.os.Process.myUid();
-
-        long receivedBytes = TrafficStats.getUidRxBytes(UID) / 1000;
-        long sentBytes = TrafficStats.getUidTxBytes(UID) / 1000;
-
-        System.out.println(String.format("Uploaded kilo bytes=%s, downloaded kilo bytes=%s",
-                sentBytes, receivedBytes));
-
+        // FIXME: move to a settings button's onClick.
         getFragmentManager().beginTransaction()
                 .replace(android.R.id.content, new SettingsFragment())
                 .commit();
@@ -52,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
         if (resultCode == SUCCESS_CODE) {
             startBackgroundService();
         } else {
-            // Show dialog that app may get killed in the background by the OS
+            // TODO: Show dialog that app may get killed in the background by the OS
             // and won't work once device enters doze mode.
             // https://developer.android.com/training/monitoring-device-state/doze-standby.html
             startBackgroundService();
