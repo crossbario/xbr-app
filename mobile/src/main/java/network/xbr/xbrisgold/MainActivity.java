@@ -2,13 +2,16 @@ package network.xbr.xbrisgold;
 
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.TrafficStats;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.provider.Settings;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
@@ -16,10 +19,20 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_CODE = 1000;
     private static final int SUCCESS_CODE = -1;
 
+    private LocalBroadcastManager mBroadcaster;
+
+    private BroadcastReceiver mNetworkPingFrequencyChangeListener = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            System.out.println(intent.getAction());
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        mBroadcaster = LocalBroadcastManager.getInstance(getApplicationContext());
         String packageName = getPackageName();
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         if (!pm.isIgnoringBatteryOptimizations(packageName)) {
@@ -41,6 +54,21 @@ public class MainActivity extends AppCompatActivity {
         getFragmentManager().beginTransaction()
                 .replace(android.R.id.content, new SettingsFragment())
                 .commit();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        mBroadcaster.registerReceiver(
+                mNetworkPingFrequencyChangeListener,
+                new IntentFilter(LongRunningService.NETWORK_PING_FREQUENCY_CHANGE_BROADCASTER_INTENT)
+        );
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        mBroadcaster.unregisterReceiver(mNetworkPingFrequencyChangeListener);
     }
 
     @Override

@@ -12,14 +12,11 @@ import android.net.TrafficStats;
 import android.os.Handler;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -44,10 +41,13 @@ import network.xbr.xbrisgold.database.WAMPLatencyStatDao;
 public class LongRunningService extends Service
         implements SharedPreferences.OnSharedPreferenceChangeListener {
 
-    public static final String NETWORK_PING_REQUENCY_CHANGE_BROADCASTER_INTENT =
+    public static final String NETWORK_PING_FREQUENCY_CHANGE_BROADCASTER_INTENT =
             "network.xbr.ping_interval_changed";
+//    public static final String APP_VISIBILITY_CHANGE_INTENT;
 
     private static final String TAG = LongRunningService.class.getName();
+    private static final String NETWORK_STATE_CHANGE_INTENT =
+            "android.net.conn.CONNECTIVITY_CHANGE";
     private static final long RECONNECT_INTERVAL = 20000;
     private static final long CALL_QUEUE_INTERVAL = 3000;
     private static final RegisterOptions REGISTER_OPTIONS = new RegisterOptions(
@@ -61,18 +61,23 @@ public class LongRunningService extends Service
     private StatsKeyValueStore mStatsStore;
     private AppDatabase mStatsDB;
     private SharedPreferences mSharedPreferences;
+    private LocalBroadcastManager mBroadcaster;
 
-    private BroadcastReceiver mNetworkStateChangeListener = new BroadcastReceiver() {
+    private BroadcastReceiver mStatesChangeListener = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            connectToServer(context);
-        }
-    };
+            String action = intent.getAction();
+            if (action == null) {
+                return;
+            }
 
-    private BroadcastReceiver mNetworkPingFrequencyChangeListener = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            System.out.println(intent.getAction());
+            if (action.equals(NETWORK_STATE_CHANGE_INTENT)) {
+                connectToServer(context);
+            } else if (action.equals(NETWORK_PING_FREQUENCY_CHANGE_BROADCASTER_INTENT)) {
+
+            } else if (action.equals("something else")) {
+
+            }
         }
     };
 
@@ -84,16 +89,18 @@ public class LongRunningService extends Service
                 "connection-stats").build();
         mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         mSharedPreferences.registerOnSharedPreferenceChangeListener(this);
+        mBroadcaster = LocalBroadcastManager.getInstance(getApplicationContext());
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i(TAG, String.format("Crash count: %s", mStatsStore.getServiceCrashCount()));
         mHandler = new Handler();
-        registerReceiver(mNetworkStateChangeListener,
-                new IntentFilter("android.net.conn.CONNECTIVITY_CHANGE"));
-        registerReceiver(mNetworkPingFrequencyChangeListener,
-                new IntentFilter(NETWORK_PING_REQUENCY_CHANGE_BROADCASTER_INTENT));
+        registerReceiver(mStatesChangeListener, new IntentFilter(NETWORK_STATE_CHANGE_INTENT));
+        mBroadcaster.registerReceiver(
+                mStatesChangeListener,
+                new IntentFilter(NETWORK_PING_FREQUENCY_CHANGE_BROADCASTER_INTENT)
+        );
         // Automatically restarts the service if killed by the OS.
         return START_STICKY;
     }
@@ -101,16 +108,16 @@ public class LongRunningService extends Service
     @Override
     public void onDestroy() {
         super.onDestroy();
-        unregisterReceiver(mNetworkStateChangeListener);
-        unregisterReceiver(mNetworkPingFrequencyChangeListener);
+        unregisterReceiver(mStatesChangeListener);
+        mBroadcaster.unregisterReceiver(mStatesChangeListener);
         mStatsStore.appendServiceCrashCount();
         mSharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
     }
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {
-        unregisterReceiver(mNetworkStateChangeListener);
-        unregisterReceiver(mNetworkPingFrequencyChangeListener);
+        unregisterReceiver(mStatesChangeListener);
+        mBroadcaster.unregisterReceiver(mStatesChangeListener);
         mStatsStore.appendServiceCrashCount();
         mSharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
     }
