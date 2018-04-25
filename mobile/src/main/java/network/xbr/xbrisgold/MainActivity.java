@@ -19,22 +19,13 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_CODE = 1000;
     private static final int SUCCESS_CODE = -1;
 
-    private LocalBroadcastManager mBroadcaster;
-
-    private BroadcastReceiver mNetworkPingFrequencyChangeListener = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            System.out.println(intent.getAction());
-        }
-    };
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mBroadcaster = LocalBroadcastManager.getInstance(getApplicationContext());
+
         String packageName = getPackageName();
-        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        PowerManager pm = getSystemService(PowerManager.class);
         if (!pm.isIgnoringBatteryOptimizations(packageName)) {
             Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
             intent.setData(Uri.parse("package:" + packageName));
@@ -54,21 +45,6 @@ public class MainActivity extends AppCompatActivity {
         getFragmentManager().beginTransaction()
                 .replace(android.R.id.content, new SettingsFragment())
                 .commit();
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        mBroadcaster.registerReceiver(
-                mNetworkPingFrequencyChangeListener,
-                new IntentFilter(LongRunningService.NETWORK_PING_FREQUENCY_CHANGE_BROADCASTER_INTENT)
-        );
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        mBroadcaster.unregisterReceiver(mNetworkPingFrequencyChangeListener);
     }
 
     @Override
