@@ -7,17 +7,19 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.TrafficStats;
 import android.os.Handler;
 import android.os.IBinder;
+import android.preference.PreferenceManager;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -39,11 +41,14 @@ import network.xbr.xbrisgold.database.StatsKeyValueStore;
 import network.xbr.xbrisgold.database.WAMPLatencyStat;
 import network.xbr.xbrisgold.database.WAMPLatencyStatDao;
 
-public class LongRunningService extends Service {
+public class LongRunningService extends Service implements OnSharedPreferenceChangeListener {
 
     private static final String TAG = LongRunningService.class.getName();
+    private static final String NETWORK_STATE_CHANGE_INTENT =
+            "android.net.conn.CONNECTIVITY_CHANGE";
     private static final long RECONNECT_INTERVAL = 20000;
     private static final long CALL_QUEUE_INTERVAL = 3000;
+
     private static final RegisterOptions REGISTER_OPTIONS = new RegisterOptions(
             RegisterOptions.MATCH_EXACT, RegisterOptions.INVOKE_ROUNDROBIN);
     private static final String PROC_NET_STATS = "network.xbr.connection_stats";
@@ -54,11 +59,23 @@ public class LongRunningService extends Service {
     private Runnable mLastCallback;
     private StatsKeyValueStore mStatsStore;
     private AppDatabase mStatsDB;
+    private SharedPreferences mSharedPreferences;
+    private LocalBroadcastManager mLocalBroadcaster;
 
-    private BroadcastReceiver mNetworkStateChangeListener = new BroadcastReceiver() {
+    private Client mWAMPClient;
+
+    private BroadcastReceiver mStateChangeListener = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            connectToServer(context);
+            String action = intent.getAction();
+            if (action == null) {
+                return;
+            }
+            if (action.equals(NETWORK_STATE_CHANGE_INTENT)) {
+                connectToServer(context);
+            } else if (action.equals(MainApplication.INTENT_APP_VISIBILITY_CHANGED)) {
+                applyPolicyChangeIfRequired();
+            }
         }
     };
 
@@ -68,14 +85,19 @@ public class LongRunningService extends Service {
         mStatsStore = StatsKeyValueStore.getInstance(getApplicationContext());
         mStatsDB = Room.databaseBuilder(getApplicationContext(), AppDatabase.class,
                 "connection-stats").build();
+        mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        mSharedPreferences.registerOnSharedPreferenceChangeListener(this);
+        mLocalBroadcaster = LocalBroadcastManager.getInstance(getApplicationContext());
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i(TAG, String.format("Crash count: %s", mStatsStore.getServiceCrashCount()));
         mHandler = new Handler();
-        registerReceiver(mNetworkStateChangeListener,
-                new IntentFilter("android.net.conn.CONNECTIVITY_CHANGE"));
+        registerReceiver(mStateChangeListener,
+                new IntentFilter(NETWORK_STATE_CHANGE_INTENT));
+        mLocalBroadcaster.registerReceiver(mStateChangeListener,
+                new IntentFilter(MainApplication.INTENT_APP_VISIBILITY_CHANGED));
         // Automatically restarts the service if killed by the OS.
         return START_STICKY;
     }
@@ -83,13 +105,18 @@ public class LongRunningService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        unregisterReceiver(mNetworkStateChangeListener);
+        unregisterReceiver(mStateChangeListener);
+        mLocalBroadcaster.unregisterReceiver(mStateChangeListener);
         mStatsStore.appendServiceCrashCount();
+        mSharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
     }
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {
+        unregisterReceiver(mStateChangeListener);
+        mLocalBroadcaster.unregisterReceiver(mStateChangeListener);
         mStatsStore.appendServiceCrashCount();
+        mSharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
     }
 
     private long getTimeSinceLastConnectRequest() {
@@ -170,12 +197,12 @@ public class LongRunningService extends Service {
                 "test@crossbario.com",
                 "ef83d35678742e01fa412d597cd3909c113b12a8a7dc101cba073c0423c9db41",
                 "e5b0d24af05c77d644de885946147aeb4fa6897a5cf4eb14347c3d637664b117");
-        Client client = new Client(wampSession, "ws://178.62.69.210:8080/ws", "realm1", auth);
+        mWAMPClient = new Client(wampSession, "ws://178.62.69.210:8080/ws", "realm1", auth);
 
         TransportOptions options = new TransportOptions();
-        options.setAutoPingInterval(66);
+        options.setAutoPingInterval(getProfilePingInterval());
         networkUsageStat.connectRequestTime = System.currentTimeMillis();
-        client.connect(options).whenComplete((exitInfo, throwable) -> {
+        mWAMPClient.connect(options).whenComplete((exitInfo, throwable) -> {
             if (throwable != null) {
                 throwable.printStackTrace();
             }
@@ -240,5 +267,53 @@ public class LongRunningService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         return null;
+    }
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        if (key.equals(getString(R.string.key_policy_wifi_foreground))
+                || key.equals(getString(R.string.key_policy_mobile_data_foreground))) {
+            applyPolicyChangeIfRequired();
+        }
+    }
+
+    private int getProfilePingInterval() {
+        MainApplication app = (MainApplication) getApplication();
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(
+                getApplicationContext());
+        NetworkInfo networkInfo = Helpers.getNetworkInfo(getApplicationContext());
+
+        if (networkInfo != null) {
+            if (networkInfo.getType() == ConnectivityManager.TYPE_WIFI) {
+                if (app.isVisible()) {
+                    return parseInt(prefs, getString(R.string.key_policy_wifi_foreground));
+                } else if (Helpers.isDozeMode(getApplication())) {
+                    return parseInt(prefs, getString(R.string.key_policy_wifi_doze));
+                } else {
+                    return parseInt(prefs, getString(R.string.key_policy_wifi_background));
+                }
+            } else if (networkInfo.getType() == ConnectivityManager.TYPE_MOBILE) {
+                if (app.isVisible()) {
+                    return parseInt(prefs, getString(R.string.key_policy_mobile_data_foreground));
+                } else if (Helpers.isDozeMode(getApplication())) {
+                    return parseInt(prefs, getString(R.string.key_policy_mobile_data_doze));
+                } else {
+                    return parseInt(prefs, getString(R.string.key_policy_mobile_data_background));
+                }
+            }
+        }
+
+        // Random default.
+        return 66;
+    }
+
+    private int parseInt(SharedPreferences sharedPreferences, String key) {
+        return Integer.parseInt(sharedPreferences.getString(key, null));
+    }
+
+    private void applyPolicyChangeIfRequired() {
+        TransportOptions options = new TransportOptions();
+        options.setAutoPingInterval(getProfilePingInterval());
+        // mWAMPClient.setOptions(options);
     }
 }

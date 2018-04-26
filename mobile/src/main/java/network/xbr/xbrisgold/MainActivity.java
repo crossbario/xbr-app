@@ -2,14 +2,15 @@ package network.xbr.xbrisgold;
 
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
-import android.content.Context;
+import android.app.FragmentManager;
 import android.content.Intent;
-import android.net.TrafficStats;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.provider.Settings;
 import android.support.v7.app.AppCompatActivity;
+import android.view.Menu;
+import android.view.MenuItem;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -19,9 +20,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+//        setContentView(R.layout.activity_main);
+
         String packageName = getPackageName();
-        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        PowerManager pm = getSystemService(PowerManager.class);
         if (!pm.isIgnoringBatteryOptimizations(packageName)) {
             Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
             intent.setData(Uri.parse("package:" + packageName));
@@ -29,14 +31,42 @@ public class MainActivity extends AppCompatActivity {
         } else {
             startBackgroundService();
         }
+    }
 
-        int UID = android.os.Process.myUid();
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return true;
+    }
 
-        long receivedBytes = TrafficStats.getUidRxBytes(UID) / 1000;
-        long sentBytes = TrafficStats.getUidTxBytes(UID) / 1000;
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
 
-        System.out.println(String.format("Uploaded kilo bytes=%s, downloaded kilo bytes=%s",
-                sentBytes, receivedBytes));
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.action_settings) {
+            getFragmentManager().beginTransaction()
+                    .replace(android.R.id.content, new SettingsFragment(), "settings")
+                    .commit();
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onBackPressed() {
+        FragmentManager fm = getFragmentManager();
+        SettingsFragment fragment = (SettingsFragment) fm.findFragmentByTag("settings");
+        if (fragment != null && fragment.isVisible()) {
+            fm.beginTransaction().remove(fragment).commit();
+        } else {
+            super.onBackPressed();
+        }
     }
 
     @Override
@@ -44,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
         if (resultCode == SUCCESS_CODE) {
             startBackgroundService();
         } else {
-            // Show dialog that app may get killed in the background by the OS
+            // TODO: Show dialog that app may get killed in the background by the OS
             // and won't work once device enters doze mode.
             // https://developer.android.com/training/monitoring-device-state/doze-standby.html
             startBackgroundService();

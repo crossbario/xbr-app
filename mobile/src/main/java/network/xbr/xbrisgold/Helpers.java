@@ -3,6 +3,7 @@ package network.xbr.xbrisgold;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.PowerManager;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -17,9 +18,16 @@ public class Helpers {
     private static Thread sInternetCheckerThread;
     private static boolean sIsLastRunComplete;
 
-    public static boolean isNetworkAvailable(Context ctx) {
+    public static NetworkInfo getNetworkInfo(Context ctx) {
         ConnectivityManager cm = ctx.getSystemService(ConnectivityManager.class);
-        NetworkInfo activeNetworkInfo = cm.getActiveNetworkInfo();
+        if (cm == null) {
+            return null;
+        }
+        return cm.getActiveNetworkInfo();
+    }
+
+    public static boolean isNetworkAvailable(Context ctx) {
+        NetworkInfo activeNetworkInfo = getNetworkInfo(ctx);
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
@@ -56,5 +64,22 @@ public class Helpers {
 
     public static String getCurrentDate() {
         return new Date(System.currentTimeMillis()).toString();
+    }
+
+    public static boolean isWifiConnected(Context ctx) {
+        NetworkInfo info = getNetworkInfo(ctx);
+        return info != null && info.isConnected()
+                && info.getType() == ConnectivityManager.TYPE_WIFI;
+    }
+
+    public static boolean isMobileDataConnected(Context ctx) {
+        NetworkInfo info = getNetworkInfo(ctx);
+        return info != null && info.isConnected()
+                && info.getType() == ConnectivityManager.TYPE_MOBILE;
+    }
+
+    public static boolean isDozeMode(Context ctx) {
+        PowerManager pm = ctx.getSystemService(PowerManager.class);
+        return pm != null && pm.isDeviceIdleMode();
     }
 }
