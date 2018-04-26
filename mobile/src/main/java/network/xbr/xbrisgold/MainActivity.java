@@ -2,6 +2,7 @@ package network.xbr.xbrisgold;
 
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
+import android.app.FragmentManager;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -59,9 +60,10 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        SettingsFragment fragment = (SettingsFragment) getFragmentManager().findFragmentByTag("settings");
+        FragmentManager fm = getFragmentManager();
+        SettingsFragment fragment = (SettingsFragment) fm.findFragmentByTag("settings");
         if (fragment != null && fragment.isVisible()) {
-            getFragmentManager().beginTransaction().remove(fragment).commit();
+            fm.beginTransaction().remove(fragment).commit();
         } else {
             super.onBackPressed();
         }
