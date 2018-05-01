@@ -63,6 +63,7 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
     private LocalBroadcastManager mLocalBroadcaster;
 
     private Client mWAMPClient;
+    private Session mSession;
 
     private BroadcastReceiver mStateChangeListener = new BroadcastReceiver() {
         @Override
@@ -72,7 +73,9 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
                 return;
             }
             if (action.equals(NETWORK_STATE_CHANGE_INTENT)) {
-                connectToServer(context);
+                if (getProfilePingInterval() != SettingsFragment.POLICY_DISCONNECT) {
+                    connectToServer(context);
+                }
             } else if (action.equals(MainApplication.INTENT_APP_VISIBILITY_CHANGED)) {
                 applyPolicyChangeIfRequired();
             }
@@ -161,12 +164,12 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
         long bytesRxBefore = TrafficStats.getUidRxBytes(UID);
         long bytesTxBefore = TrafficStats.getUidTxBytes(UID);
 
-        Session wampSession = new Session();
-        wampSession.addOnConnectListener(session -> {
+        mSession = new Session();
+        mSession.addOnConnectListener(session -> {
             networkUsageStat.connectTime = System.currentTimeMillis();
         });
-        wampSession.addOnJoinListener(this::onJoin);
-        wampSession.addOnLeaveListener((session, closeDetails) -> {
+        mSession.addOnJoinListener(this::onJoin);
+        mSession.addOnLeaveListener((session, closeDetails) -> {
             Log.i(TAG, String.format("LEAVE, reason=%s", closeDetails.reason));
             DisconnectionStat stat = new DisconnectionStat();
             stat.reason = closeDetails.reason;
@@ -178,7 +181,7 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
                 Log.i(TAG, "Insert new stat");
             });
         });
-        wampSession.addOnDisconnectListener((session, b) -> {
+        mSession.addOnDisconnectListener((session, wasClean) -> {
             networkUsageStat.disconnectTime = System.currentTimeMillis();
             long bytesRx = TrafficStats.getUidRxBytes(UID) - bytesRxBefore;
             long bytesTx = TrafficStats.getUidTxBytes(UID) - bytesTxBefore;
@@ -189,15 +192,17 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
             networkUsageStat.totalBytes = bytesTotal;
             Helpers.callInThread(() -> mStatsDB.getNetworkStatDao().insert(networkUsageStat));
 
-            Log.i(TAG, String.format("DISCONNECTED, clean=%s", b));
-            connectToServer(getApplicationContext());
+            Log.i(TAG, String.format("DISCONNECTED, clean=%s", wasClean));
+            if (getProfilePingInterval() != SettingsFragment.POLICY_DISCONNECT) {
+                connectToServer(getApplicationContext());
+            }
         });
 
         IAuthenticator auth = new CryptosignAuth(
                 "test@crossbario.com",
                 "ef83d35678742e01fa412d597cd3909c113b12a8a7dc101cba073c0423c9db41",
                 "e5b0d24af05c77d644de885946147aeb4fa6897a5cf4eb14347c3d637664b117");
-        mWAMPClient = new Client(wampSession, "ws://178.62.69.210:8080/ws", "realm1", auth);
+        mWAMPClient = new Client(mSession, "ws://178.62.69.210:8080/ws", "realm1", auth);
 
         TransportOptions options = new TransportOptions();
         options.setAutoPingInterval(getProfilePingInterval());
@@ -312,8 +317,24 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
     }
 
     private void applyPolicyChangeIfRequired() {
-        TransportOptions options = new TransportOptions();
-        options.setAutoPingInterval(getProfilePingInterval());
-        // mWAMPClient.setOptions(options);
+        Log.d(TAG, String.format("App visibility changed, ping interval=%s",
+                getProfilePingInterval()));
+        int pingPolicy = getProfilePingInterval();
+        switch (pingPolicy) {
+            case -1:
+                if (mSession!= null && mSession.isConnected()) {
+                    mSession.leave();
+                }
+                break;
+            default:
+                if (mWAMPClient == null) {
+                    connectToServer(getApplicationContext());
+                } else {
+                    TransportOptions options = new TransportOptions();
+                    options.setAutoPingInterval(pingPolicy);
+                    mWAMPClient.setOptions(options);
+                }
+                break;
+        }
     }
 }
