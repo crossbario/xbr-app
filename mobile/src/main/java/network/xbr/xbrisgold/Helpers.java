@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.Build;
 import android.os.PowerManager;
 import android.preference.PreferenceManager;
 
@@ -71,7 +72,8 @@ public class Helpers {
 
     private static boolean isDozeMode(Context ctx) {
         PowerManager pm = ctx.getSystemService(PowerManager.class);
-        return pm != null && pm.isDeviceIdleMode();
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && pm != null
+                && pm.isDeviceIdleMode();
     }
 
     public static int getProfilePingInterval(Application mainApp) {

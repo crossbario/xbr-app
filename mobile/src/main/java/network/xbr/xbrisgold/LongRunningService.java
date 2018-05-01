@@ -9,9 +9,11 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
+import android.net.ConnectivityManager;
 import android.net.TrafficStats;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.preference.PreferenceManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
@@ -42,8 +44,6 @@ import network.xbr.xbrisgold.database.WAMPLatencyStatDao;
 public class LongRunningService extends Service implements OnSharedPreferenceChangeListener {
 
     private static final String TAG = LongRunningService.class.getName();
-    private static final String NETWORK_STATE_CHANGE_INTENT =
-            "android.net.conn.CONNECTIVITY_CHANGE";
     private static final long RECONNECT_INTERVAL = 20000;
     private static final long CALL_QUEUE_INTERVAL = 3000;
 
@@ -70,12 +70,13 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
             if (action == null) {
                 return;
             }
-            if (action.equals(NETWORK_STATE_CHANGE_INTENT)) {
+            if (action.equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
                 if (Helpers.getProfilePingInterval(getApplication())
                         != SettingsFragment.POLICY_DISCONNECT) {
                     connectToServer(context);
                 }
-            } else if (action.equals(MainApplication.INTENT_APP_VISIBILITY_CHANGED)) {
+            } else if (action.equals(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED)
+                    || action.equals(MainApplication.INTENT_APP_VISIBILITY_CHANGED)) {
                 applyPolicyChangeIfRequired();
             }
         }
@@ -97,7 +98,9 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
         Log.i(TAG, String.format("Crash count: %s", mStatsStore.getServiceCrashCount()));
         mHandler = new Handler();
         registerReceiver(mStateChangeListener,
-                new IntentFilter(NETWORK_STATE_CHANGE_INTENT));
+                new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+        registerReceiver(mStateChangeListener,
+                new IntentFilter(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED));
         mLocalBroadcaster.registerReceiver(mStateChangeListener,
                 new IntentFilter(MainApplication.INTENT_APP_VISIBILITY_CHANGED));
         // Automatically restarts the service if killed by the OS.
