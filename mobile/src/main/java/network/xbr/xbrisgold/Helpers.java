@@ -23,7 +23,8 @@ public class Helpers {
     private static boolean sIsLastRunComplete;
 
     private static NetworkInfo getNetworkInfo(Context ctx) {
-        ConnectivityManager cm = ctx.getSystemService(ConnectivityManager.class);
+        ConnectivityManager cm = (ConnectivityManager) ctx.getSystemService(
+                Context.CONNECTIVITY_SERVICE);
         if (cm == null) {
             return null;
         }
@@ -71,7 +72,7 @@ public class Helpers {
     }
 
     private static boolean isDozeMode(Context ctx) {
-        PowerManager pm = ctx.getSystemService(PowerManager.class);
+        PowerManager pm = (PowerManager) ctx.getSystemService(Context.POWER_SERVICE);
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && pm != null
                 && pm.isDeviceIdleMode();
     }

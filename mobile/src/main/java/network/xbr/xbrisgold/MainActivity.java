@@ -3,8 +3,10 @@ package network.xbr.xbrisgold;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
 import android.app.FragmentManager;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.provider.Settings;
@@ -21,11 +23,15 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         String packageName = getPackageName();
-        PowerManager pm = getSystemService(PowerManager.class);
-        if (!pm.isIgnoringBatteryOptimizations(packageName)) {
-            Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
-            intent.setData(Uri.parse("package:" + packageName));
-            startActivityForResult(intent, REQUEST_CODE);
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                intent.setData(Uri.parse("package:" + packageName));
+                startActivityForResult(intent, REQUEST_CODE);
+            } else {
+                startBackgroundService();
+            }
         } else {
             startBackgroundService();
         }
@@ -80,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean isServiceRunning() {
-        ActivityManager manager = getSystemService(ActivityManager.class);
+        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
         for (RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
             if (LongRunningService.class.getName().equals(service.service.getClassName())) {
                 return true;
