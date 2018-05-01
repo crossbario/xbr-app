@@ -1,9 +1,12 @@
 package network.xbr.xbrisgold;
 
+import android.app.Application;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.PowerManager;
+import android.preference.PreferenceManager;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -18,7 +21,7 @@ public class Helpers {
     private static Thread sInternetCheckerThread;
     private static boolean sIsLastRunComplete;
 
-    public static NetworkInfo getNetworkInfo(Context ctx) {
+    private static NetworkInfo getNetworkInfo(Context ctx) {
         ConnectivityManager cm = ctx.getSystemService(ConnectivityManager.class);
         if (cm == null) {
             return null;
@@ -66,20 +69,44 @@ public class Helpers {
         return new Date(System.currentTimeMillis()).toString();
     }
 
-    public static boolean isWifiConnected(Context ctx) {
-        NetworkInfo info = getNetworkInfo(ctx);
-        return info != null && info.isConnected()
-                && info.getType() == ConnectivityManager.TYPE_WIFI;
-    }
-
-    public static boolean isMobileDataConnected(Context ctx) {
-        NetworkInfo info = getNetworkInfo(ctx);
-        return info != null && info.isConnected()
-                && info.getType() == ConnectivityManager.TYPE_MOBILE;
-    }
-
-    public static boolean isDozeMode(Context ctx) {
+    private static boolean isDozeMode(Context ctx) {
         PowerManager pm = ctx.getSystemService(PowerManager.class);
         return pm != null && pm.isDeviceIdleMode();
+    }
+
+    public static int getProfilePingInterval(Application mainApp) {
+        MainApplication app = (MainApplication) mainApp;
+        Context ctx = app.getApplicationContext();
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(ctx);
+        NetworkInfo networkInfo = Helpers.getNetworkInfo(ctx);
+
+        if (networkInfo != null) {
+            if (networkInfo.getType() == ConnectivityManager.TYPE_WIFI) {
+                if (app.isVisible()) {
+                    return parseInt(prefs, ctx.getString(R.string.key_policy_wifi_foreground));
+                } else if (Helpers.isDozeMode(ctx)) {
+                    return parseInt(prefs, ctx.getString(R.string.key_policy_wifi_doze));
+                } else {
+                    return parseInt(prefs, ctx.getString(R.string.key_policy_wifi_background));
+                }
+            } else if (networkInfo.getType() == ConnectivityManager.TYPE_MOBILE) {
+                if (app.isVisible()) {
+                    return parseInt(prefs,
+                            ctx.getString(R.string.key_policy_mobile_data_foreground));
+                } else if (Helpers.isDozeMode(ctx)) {
+                    return parseInt(prefs, ctx.getString(R.string.key_policy_mobile_data_doze));
+                } else {
+                    return parseInt(prefs,
+                            ctx.getString(R.string.key_policy_mobile_data_background));
+                }
+            }
+        }
+
+        // Random default.
+        return 66;
+    }
+
+    private static int parseInt(SharedPreferences sharedPreferences, String key) {
+        return Integer.parseInt(sharedPreferences.getString(key, null));
     }
 }
