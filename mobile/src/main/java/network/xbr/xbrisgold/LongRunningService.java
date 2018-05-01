@@ -9,8 +9,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.net.TrafficStats;
 import android.os.Handler;
 import android.os.IBinder;
@@ -63,6 +61,7 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
     private LocalBroadcastManager mLocalBroadcaster;
 
     private Client mWAMPClient;
+    private Session mSession;
 
     private BroadcastReceiver mStateChangeListener = new BroadcastReceiver() {
         @Override
@@ -72,7 +71,10 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
                 return;
             }
             if (action.equals(NETWORK_STATE_CHANGE_INTENT)) {
-                connectToServer(context);
+                if (Helpers.getProfilePingInterval(getApplication())
+                        != SettingsFragment.POLICY_DISCONNECT) {
+                    connectToServer(context);
+                }
             } else if (action.equals(MainApplication.INTENT_APP_VISIBILITY_CHANGED)) {
                 applyPolicyChangeIfRequired();
             }
@@ -105,14 +107,15 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
     @Override
     public void onDestroy() {
         super.onDestroy();
-        unregisterReceiver(mStateChangeListener);
-        mLocalBroadcaster.unregisterReceiver(mStateChangeListener);
-        mStatsStore.appendServiceCrashCount();
-        mSharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
+        cleanup();
     }
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {
+        cleanup();
+    }
+
+    private void cleanup() {
         unregisterReceiver(mStateChangeListener);
         mLocalBroadcaster.unregisterReceiver(mStateChangeListener);
         mStatsStore.appendServiceCrashCount();
@@ -124,7 +127,7 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
     }
 
     private void connectToServer(Context ctx) {
-        if (Helpers.isNetworkAvailable(ctx.getApplicationContext())) {
+        if (Helpers.isNetworkAvailable(ctx)) {
             if (mWasReconnectRequest && getTimeSinceLastConnectRequest() < RECONNECT_INTERVAL) {
                 mWasReconnectRequest = false;
                 mHandler.removeCallbacks(mLastCallback);
@@ -157,16 +160,16 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
         NetworkUsageStat networkUsageStat = new NetworkUsageStat();
         mStatsStore.appendConnectionAttemptsCount();
 
-        int UID = android.os.Process.myUid();
+        final int UID = android.os.Process.myUid();
         long bytesRxBefore = TrafficStats.getUidRxBytes(UID);
         long bytesTxBefore = TrafficStats.getUidTxBytes(UID);
 
-        Session wampSession = new Session();
-        wampSession.addOnConnectListener(session -> {
+        mSession = new Session();
+        mSession.addOnConnectListener(session -> {
             networkUsageStat.connectTime = System.currentTimeMillis();
         });
-        wampSession.addOnJoinListener(this::onJoin);
-        wampSession.addOnLeaveListener((session, closeDetails) -> {
+        mSession.addOnJoinListener(this::onJoin);
+        mSession.addOnLeaveListener((session, closeDetails) -> {
             Log.i(TAG, String.format("LEAVE, reason=%s", closeDetails.reason));
             DisconnectionStat stat = new DisconnectionStat();
             stat.reason = closeDetails.reason;
@@ -178,7 +181,7 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
                 Log.i(TAG, "Insert new stat");
             });
         });
-        wampSession.addOnDisconnectListener((session, b) -> {
+        mSession.addOnDisconnectListener((session, wasClean) -> {
             networkUsageStat.disconnectTime = System.currentTimeMillis();
             long bytesRx = TrafficStats.getUidRxBytes(UID) - bytesRxBefore;
             long bytesTx = TrafficStats.getUidTxBytes(UID) - bytesTxBefore;
@@ -189,18 +192,21 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
             networkUsageStat.totalBytes = bytesTotal;
             Helpers.callInThread(() -> mStatsDB.getNetworkStatDao().insert(networkUsageStat));
 
-            Log.i(TAG, String.format("DISCONNECTED, clean=%s", b));
-            connectToServer(getApplicationContext());
+            Log.i(TAG, String.format("DISCONNECTED, clean=%s", wasClean));
+            if (Helpers.getProfilePingInterval(getApplication())
+                    != SettingsFragment.POLICY_DISCONNECT) {
+                connectToServer(getApplicationContext());
+            }
         });
 
         IAuthenticator auth = new CryptosignAuth(
                 "test@crossbario.com",
                 "ef83d35678742e01fa412d597cd3909c113b12a8a7dc101cba073c0423c9db41",
                 "e5b0d24af05c77d644de885946147aeb4fa6897a5cf4eb14347c3d637664b117");
-        mWAMPClient = new Client(wampSession, "ws://178.62.69.210:8080/ws", "realm1", auth);
+        mWAMPClient = new Client(mSession, "ws://178.62.69.210:8080/ws", "realm1", auth);
 
         TransportOptions options = new TransportOptions();
-        options.setAutoPingInterval(getProfilePingInterval());
+        options.setAutoPingInterval(Helpers.getProfilePingInterval(getApplication()));
         networkUsageStat.connectRequestTime = System.currentTimeMillis();
         mWAMPClient.connect(options).whenComplete((exitInfo, throwable) -> {
             if (throwable != null) {
@@ -252,8 +258,7 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
                 if (throwable == null) {
                     stat.timeReceived = System.currentTimeMillis();
                     Helpers.callInThread(() -> latencyStatDao.insert(stat));
-                    System.out.println(String.format("RTT: %s ms",
-                            stat.timeReceived - stat.timeSent));
+                    Log.d(TAG, String.format("RTT: %s ms", stat.timeReceived - stat.timeSent));
                 }
             });
             try {
@@ -277,43 +282,21 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
         }
     }
 
-    private int getProfilePingInterval() {
-        MainApplication app = (MainApplication) getApplication();
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(
-                getApplicationContext());
-        NetworkInfo networkInfo = Helpers.getNetworkInfo(getApplicationContext());
-
-        if (networkInfo != null) {
-            if (networkInfo.getType() == ConnectivityManager.TYPE_WIFI) {
-                if (app.isVisible()) {
-                    return parseInt(prefs, getString(R.string.key_policy_wifi_foreground));
-                } else if (Helpers.isDozeMode(getApplication())) {
-                    return parseInt(prefs, getString(R.string.key_policy_wifi_doze));
-                } else {
-                    return parseInt(prefs, getString(R.string.key_policy_wifi_background));
-                }
-            } else if (networkInfo.getType() == ConnectivityManager.TYPE_MOBILE) {
-                if (app.isVisible()) {
-                    return parseInt(prefs, getString(R.string.key_policy_mobile_data_foreground));
-                } else if (Helpers.isDozeMode(getApplication())) {
-                    return parseInt(prefs, getString(R.string.key_policy_mobile_data_doze));
-                } else {
-                    return parseInt(prefs, getString(R.string.key_policy_mobile_data_background));
-                }
+    private void applyPolicyChangeIfRequired() {
+        int pingPolicy = Helpers.getProfilePingInterval(getApplication());
+        Log.d(TAG, String.format("App visibility changed, ping interval=%s", pingPolicy));
+        if (pingPolicy == SettingsFragment.POLICY_DISCONNECT) {
+            if (mSession!= null && mSession.isConnected()) {
+                mSession.leave();
+            }
+        } else {
+            if (mWAMPClient == null) {
+                connectToServer(getApplicationContext());
+            } else {
+                TransportOptions options = new TransportOptions();
+                options.setAutoPingInterval(pingPolicy);
+                mWAMPClient.setOptions(options);
             }
         }
-
-        // Random default.
-        return 66;
-    }
-
-    private int parseInt(SharedPreferences sharedPreferences, String key) {
-        return Integer.parseInt(sharedPreferences.getString(key, null));
-    }
-
-    private void applyPolicyChangeIfRequired() {
-        TransportOptions options = new TransportOptions();
-        options.setAutoPingInterval(getProfilePingInterval());
-        // mWAMPClient.setOptions(options);
     }
 }
