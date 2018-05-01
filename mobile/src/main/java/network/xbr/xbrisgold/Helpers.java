@@ -86,21 +86,27 @@ public class Helpers {
         if (networkInfo != null) {
             if (networkInfo.getType() == ConnectivityManager.TYPE_WIFI) {
                 if (app.isVisible()) {
-                    return parseInt(prefs, ctx.getString(R.string.key_policy_wifi_foreground));
+                    return parseInt(prefs, ctx.getString(R.string.key_policy_wifi_foreground),
+                            String.valueOf(SettingsFragment.POLICY_FREQUENT_HEARTBEAT));
                 } else if (Helpers.isDozeMode(ctx)) {
-                    return parseInt(prefs, ctx.getString(R.string.key_policy_wifi_doze));
+                    return parseInt(prefs, ctx.getString(R.string.key_policy_wifi_doze),
+                            String.valueOf(SettingsFragment.POLICY_NO_HEARTBEAT));
                 } else {
-                    return parseInt(prefs, ctx.getString(R.string.key_policy_wifi_background));
+                    return parseInt(prefs, ctx.getString(R.string.key_policy_wifi_background),
+                            String.valueOf(SettingsFragment.POLICY_KEEP_ALIVE));
                 }
             } else if (networkInfo.getType() == ConnectivityManager.TYPE_MOBILE) {
                 if (app.isVisible()) {
                     return parseInt(prefs,
-                            ctx.getString(R.string.key_policy_mobile_data_foreground));
+                            ctx.getString(R.string.key_policy_mobile_data_foreground),
+                            String.valueOf(SettingsFragment.POLICY_FREQUENT_HEARTBEAT));
                 } else if (Helpers.isDozeMode(ctx)) {
-                    return parseInt(prefs, ctx.getString(R.string.key_policy_mobile_data_doze));
+                    return parseInt(prefs, ctx.getString(R.string.key_policy_mobile_data_doze),
+                            String.valueOf(SettingsFragment.POLICY_NO_HEARTBEAT));
                 } else {
                     return parseInt(prefs,
-                            ctx.getString(R.string.key_policy_mobile_data_background));
+                            ctx.getString(R.string.key_policy_mobile_data_background),
+                            String.valueOf(SettingsFragment.POLICY_KEEP_ALIVE));
                 }
             }
         }
@@ -109,7 +115,7 @@ public class Helpers {
         return 66;
     }
 
-    private static int parseInt(SharedPreferences sharedPreferences, String key) {
-        return Integer.parseInt(sharedPreferences.getString(key, null));
+    private static int parseInt(SharedPreferences sharedPreferences, String key, String defValue) {
+        return Integer.parseInt(sharedPreferences.getString(key, defValue));
     }
 }
