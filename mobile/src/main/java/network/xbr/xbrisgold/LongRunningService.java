@@ -1,6 +1,7 @@
 package network.xbr.xbrisgold;
 
 
+import android.annotation.SuppressLint;
 import android.app.Service;
 import android.arch.persistence.room.Room;
 import android.content.BroadcastReceiver;
@@ -9,8 +10,12 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.TrafficStats;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
@@ -36,6 +41,7 @@ import io.crossbar.autobahn.wamp.types.SessionDetails;
 import io.crossbar.autobahn.wamp.types.TransportOptions;
 import network.xbr.xbrisgold.database.AppDatabase;
 import network.xbr.xbrisgold.database.DisconnectionStat;
+import network.xbr.xbrisgold.database.LocationLog;
 import network.xbr.xbrisgold.database.NetworkUsageStat;
 import network.xbr.xbrisgold.database.StatsKeyValueStore;
 import network.xbr.xbrisgold.database.WAMPLatencyStat;
@@ -51,6 +57,15 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
             RegisterOptions.MATCH_EXACT, RegisterOptions.INVOKE_ROUNDROBIN);
     private static final String PROC_NET_STATS = "network.xbr.connection_stats";
 
+    private static final String[] SYSTEM_STATE_INTENTS = {
+            ConnectivityManager.CONNECTIVITY_ACTION,
+            PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED
+    };
+    private static final String[] LOCAL_STATE_INTENTS = {
+            MainApplication.INTENT_APP_VISIBILITY_CHANGED,
+            MainActivity.INTENT_LOCATION_ENABLED
+    };
+
     private long mLastConnectRequestTime;
     private boolean mWasReconnectRequest;
     private Handler mHandler;
@@ -59,6 +74,7 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
     private AppDatabase mStatsDB;
     private SharedPreferences mSharedPreferences;
     private LocalBroadcastManager mLocalBroadcaster;
+    private LocationManager mLocationManager;
 
     private Client mWAMPClient;
     private Session mSession;
@@ -82,6 +98,33 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
         }
     };
 
+    private LocationListener mLocationListener = new LocationListener() {
+        @Override
+        public void onLocationChanged(Location location) {
+            LocationLog log = new LocationLog();
+            log.accuracy = location.getAccuracy();
+            log.latitude = location.getLatitude();
+            log.longitude = location.getLongitude();
+            Helpers.callInThread(() -> mStatsDB.getLocationLogDao().insert(log));
+            Log.d(TAG, log.toString());
+        }
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+
+        }
+
+        @Override
+        public void onProviderEnabled(String provider) {
+
+        }
+
+        @Override
+        public void onProviderDisabled(String provider) {
+
+        }
+    };
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -91,18 +134,23 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
         mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         mSharedPreferences.registerOnSharedPreferenceChangeListener(this);
         mLocalBroadcaster = LocalBroadcastManager.getInstance(getApplicationContext());
+        mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i(TAG, String.format("Crash count: %s", mStatsStore.getServiceCrashCount()));
         mHandler = new Handler();
-        registerReceiver(mStateChangeListener,
-                new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
-        registerReceiver(mStateChangeListener,
-                new IntentFilter(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED));
-        mLocalBroadcaster.registerReceiver(mStateChangeListener,
-                new IntentFilter(MainApplication.INTENT_APP_VISIBILITY_CHANGED));
+
+        for (String systemStateIntent: SYSTEM_STATE_INTENTS) {
+            mLocalBroadcaster.registerReceiver(
+                    mStateChangeListener, new IntentFilter(systemStateIntent));
+        }
+        for (String localStateIntent: LOCAL_STATE_INTENTS) {
+            registerReceiver(mStateChangeListener, new IntentFilter(localStateIntent));
+        }
+
+        syncLocationServiceState();
         // Automatically restarts the service if killed by the OS.
         return START_STICKY;
     }
@@ -115,13 +163,13 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {
+        mStatsStore.appendServiceCrashCount();
         cleanup();
     }
 
     private void cleanup() {
         unregisterReceiver(mStateChangeListener);
         mLocalBroadcaster.unregisterReceiver(mStateChangeListener);
-        mStatsStore.appendServiceCrashCount();
         mSharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
     }
 
@@ -282,6 +330,8 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
         if (key.equals(getString(R.string.key_policy_wifi_foreground))
                 || key.equals(getString(R.string.key_policy_mobile_data_foreground))) {
             applyPolicyChangeIfRequired();
+        } else if (key.equals(getString(R.string.key_location_updates))) {
+            syncLocationServiceState();
         }
     }
 
@@ -301,5 +351,30 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
                 mWAMPClient.setOptions(options);
             }
         }
+    }
+
+    private void syncLocationServiceState() {
+        if (isInAppLocationEnabled()) {
+            startLocationService();
+        } else {
+            stopLocationService();
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private void startLocationService() {
+        if (Helpers.hasLocationPermission(getApplicationContext())) {
+            mLocationManager.requestLocationUpdates(
+                    LocationManager.GPS_PROVIDER, 0, 10, mLocationListener);
+        }
+    }
+
+    private boolean isInAppLocationEnabled() {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        return preferences.getBoolean(getString(R.string.key_location_updates), false);
+    }
+
+    private void stopLocationService() {
+        mLocationManager.removeUpdates(mLocationListener);
     }
 }
