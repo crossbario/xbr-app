@@ -6,22 +6,10 @@
     android:orientation="vertical"
     tools:context="network.xbr.xbrisgold.MainActivity">
 
-    <!--<FrameLayout-->
-        <!--android:id="@+id/container_main"-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="match_parent">-->
-    <!--</FrameLayout>-->
-
-    <LinearLayout
-        android:orientation="horizontal"
+    <FrameLayout
+        android:id="@+id/container_main"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-
-        <Switch
-            android:id="@+id/switch_save_location"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Save location data" />
-    </LinearLayout>
+        android:layout_height="match_parent">
+    </FrameLayout>
 
 </LinearLayout>

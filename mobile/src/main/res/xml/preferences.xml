@@ -58,4 +58,17 @@
             android:defaultValue="600"/>
 
     </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="Logging">
+
+        <SwitchPreference
+            android:defaultValue="false"
+            android:key="@string/key_location_updates"
+            android:summary="whether to log location data"
+            android:switchTextOff="Start location updates"
+            android:switchTextOn="Stop location updates"
+            android:title="Location"/>
+
+    </PreferenceCategory>
 </PreferenceScreen>

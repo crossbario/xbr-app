@@ -1,13 +1,18 @@
 package network.xbr.xbrisgold;
 
+import android.app.ActivityManager;
+import android.app.ActivityManager.RunningServiceInfo;
 import android.app.Application;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Build;
 import android.os.PowerManager;
 import android.preference.PreferenceManager;
+import android.support.v4.app.ActivityCompat;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -15,6 +20,9 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.util.Date;
 import java.util.concurrent.CompletableFuture;
+
+import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
+import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 
 public class Helpers {
 
@@ -117,5 +125,28 @@ public class Helpers {
 
     private static int parseInt(SharedPreferences sharedPreferences, String key, String defValue) {
         return Integer.parseInt(sharedPreferences.getString(key, defValue));
+    }
+
+    public static boolean hasLocationPermission(Context ctx) {
+        return ActivityCompat.checkSelfPermission(ctx, ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(ctx, ACCESS_COARSE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private static boolean isServiceRunning(Context ctx) {
+        ActivityManager manager = (ActivityManager) ctx.getSystemService(Context.ACTIVITY_SERVICE);
+        for (RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (LongRunningService.class.getName().equals(service.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void startBackgroundService(Context ctx) {
+        if (!isServiceRunning(ctx)) {
+            ctx.startService(new Intent(ctx, LongRunningService.class));
+        }
     }
 }
