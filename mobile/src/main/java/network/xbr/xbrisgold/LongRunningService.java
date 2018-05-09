@@ -1,6 +1,7 @@
 package network.xbr.xbrisgold;
 
 
+import android.Manifest;
 import android.app.Service;
 import android.arch.persistence.room.Room;
 import android.content.BroadcastReceiver;
@@ -9,12 +10,16 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.TrafficStats;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.preference.PreferenceManager;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -91,6 +96,21 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
         mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         mSharedPreferences.registerOnSharedPreferenceChangeListener(this);
         mLocalBroadcaster = LocalBroadcastManager.getInstance(getApplicationContext());
+
+        if (ActivityCompat.checkSelfPermission(
+                this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(
+                this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+        executorService.scheduleAtFixedRate(() -> {
+            LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+            Location lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            System.out.println("LastLocation: " + lastLocation.getLatitude() + " " + lastLocation.getLongitude());
+        }, 0, 10, TimeUnit.SECONDS);
     }
 
     @Override
