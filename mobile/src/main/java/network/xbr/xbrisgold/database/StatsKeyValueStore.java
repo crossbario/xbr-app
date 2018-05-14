@@ -1,3 +1,12 @@
+///////////////////////////////////////////////////////////////////////////////
+//
+//   XBR is Gold - https://xbr.network
+//
+//   Copyright (c) Crossbar.io Technologies GmbH. All rights reserved
+//   Licensed under the GPL 3.0 https://opensource.org/licenses/GPL-3.0
+//
+///////////////////////////////////////////////////////////////////////////////
+
 package network.xbr.xbrisgold.database;
 
 import android.content.Context;
