@@ -25,9 +25,9 @@ dependencies {
     implementation 'com.android.support:appcompat-v7:27.1.1'
     implementation 'com.android.support.constraint:constraint-layout:1.1.0'
     wearApp project(':wear')
-    implementation 'io.crossbar.autobahn:autobahn-android:18.5.1'
+    implementation 'io.crossbar.autobahn:autobahn-android:18.5.2'
 
     // For Room database
-    implementation "android.arch.persistence.room:runtime:1.0.0"
-    annotationProcessor "android.arch.persistence.room:compiler:1.0.0"
+    implementation "android.arch.persistence.room:runtime:1.1.0"
+    annotationProcessor "android.arch.persistence.room:compiler:1.1.0"
 }
