@@ -152,11 +152,11 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
         mHandler = new Handler();
 
         for (String systemStateIntent: SYSTEM_STATE_INTENTS) {
-            mLocalBroadcaster.registerReceiver(
-                    mStateChangeListener, new IntentFilter(systemStateIntent));
+            registerReceiver(mStateChangeListener, new IntentFilter(systemStateIntent));
         }
         for (String localStateIntent: LOCAL_STATE_INTENTS) {
-            registerReceiver(mStateChangeListener, new IntentFilter(localStateIntent));
+            mLocalBroadcaster.registerReceiver(
+                    mStateChangeListener, new IntentFilter(localStateIntent));
         }
 
         syncLocationServiceState();
@@ -350,6 +350,7 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
         if (pingPolicy == SettingsFragment.POLICY_DISCONNECT) {
             if (mSession!= null && mSession.isConnected()) {
                 mSession.leave();
+                mWAMPClient = null;
             }
         } else {
             if (mWAMPClient == null) {
