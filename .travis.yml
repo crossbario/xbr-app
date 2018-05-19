@@ -27,7 +27,7 @@ cache:
 
 before_install:
   # set up awscli package
-  - pip install awscli
+  - pip install --user awscli
   - export PATH=$PATH:$HOME/.local/bin
   - which aws
   - aws --version
