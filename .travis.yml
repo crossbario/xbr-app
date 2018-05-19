@@ -1,12 +1,51 @@
+sudo: false
+dist: trusty
+
 language: android
+
 android:
   components:
     - tools
     - platform-tools
-    - tools
     - build-tools-27.0.3
     - android-27
   licenses:
     - 'android-sdk-preview-license-.+'
     - 'android-sdk-license-.+'
     - 'google-gdk-license-.+'
+
+# https://docs.travis-ci.com/user/languages/java/
+before_cache:
+  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
+
+cache:
+  directories:
+    - $HOME/.cache/pip
+    - $HOME/.gradle/caches/
+    - $HOME/.gradle/wrapper/
+
+before_install:
+  # set up awscli package
+  - pip install awscli
+  - export PATH=$PATH:$HOME/.local/bin
+  - which aws
+  - aws --version
+  - aws s3 ls ${AWS_S3_BUCKET_NAME}
+
+  # https://docs.travis-ci.com/user/environment-variables/
+  #
+  # TRAVIS_BUILD_NUMBER: The number of the current build (for example, “4”).
+  # TRAVIS_TAG: If the current build is for a git tag, this variable is set to the tag’s name.
+  # TRAVIS_COMMIT: The commit that the current build is testing.
+  - export CROSSBAR_BUILD_ID="$(date --utc "+%Y%m%d")-$(git rev-parse --short ${TRAVIS_COMMIT})"
+
+# /home/travis/build/xbr/xbr-is-gold/app/build/outputs/apk/release/*
+deploy:
+  on:
+    repo: xbr/xbr-is-gold
+    branch: master
+    # tags: true
+  skip_cleanup: true
+  provider: script
+  script: pwd && ls -la && sh .travis-deploy.sh
