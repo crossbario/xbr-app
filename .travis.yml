@@ -3,6 +3,26 @@ dist: trusty
 
 language: android
 
+addons:
+  apt:
+    update: true
+    packages:
+      # needed for pyenchant, needed for sphinx-spellcheck
+      - libenchant-dev
+
+env:
+  global:
+    # https://docs.travis-ci.com/user/encryption-keys/
+
+    # AWS_ACCESS_KEY_ID: travis encrypt -r xbr/xbr-is-gold AWS_ACCESS_KEY_ID=".."
+    - secure: "CifuU+uWPg+IelDoKjmL7m1HC++89p7AG8LRfSyy3SUfaub0SQ0ck6zHQvX9GTwx64CSSERF8Vn52cP0iEli0tIrk6k3eqPmfsVyEhRN6Z8rZ4/NfSH7D8CzZEdP+rODWIsxZ1/B0TDj7paYhDdlhBdp75K0ZYHXFyveDcG6RFWillQxfcvi7cpaT0OsVn9Ve8WMtbzZ4LQxTwxdgXDQwCpH41HpE2rCh5pij+0NOpgRYVjiSGjeDlhW96JYuc/jGda74F0PVLQ0Gjxd1M/gtVNXXrtLx3iaG0agiJ/YHitaXx0I1OqpxyfsT5csIP5ICCLv9PHsBioY71gToEXAY2QKJCwTf4zW4+nnelRABDIvszPp/SO5ozcfae+57LkjDlHYaQOUQK66S42c1bTbW6zWGTRCr07/2OC135Det7VTLXklr5OmEy8qQtH32KDqCNGha0NwPfs/9XQPuIt/QX3fpCyFR+0BdPBf7h3Gj6pxpdM4Kvg035oLyW6Y+/AWMd7HtQjlg9L6Olo6UlsraLQIc4u2Zgo5uEc3iK5GiPqYQ2yFGinUxMJmHmFLPZmW493G8j6XFXvUe9FbcLyOh4vrcJX8KEzAF3JdZjND+rkxnP/YFr8H4LGYyjgAhTZQqxnfYHUhp7xgHSclB6rUH4fGLLnQwf0Kg2EGGScHS9I="
+    # AWS_SECRET_ACCESS_KEY: travis encrypt -r xbr/xbr-is-gold AWS_SECRET_ACCESS_KEY=".."
+    - secure: "IB5cMtjKzyWSkTLycQCUdcr/w4daKW/kn6e7oD2x+POg2o05HVJ3+/uwPWmFeQEjIHGvNO3hIH1ShpGXfoD5t4ZleXdczM+rwAt0yichUJuZiu2D9Ylw8VQG++dF3rwQQsCk0Ntf1mnsPQVedW2svJUyLRRWMrWRWLuNX4QljvLetc4eToNVmVEd6fdvO5NYYDyepOSfyWYxxSk9/zbOl7hpNcfxVDtGzU1gP+A6JLeEJPVmfdFuGZcZhwT3cmYo0nGpvgwgUlgZcRZod6Vqvl4gNZf7/1zpyAknXxPz8BoOh2dUd2+CiVUp85Rh/XITpws6+pdmdzInMm9a9a0+EOdLbwp0PZLuQqJyKEwGp/MdxydhgPYGbGwUxmfrdx1IEvRQ5bjB3Vw17TnKHumxNXcNLHVTq3xRABYBlEvd3Ivi43niWgPnZhoLeCgWuUsJTuSuvlMhBNksVL1mrnnvX959jRJf2QBFoLId3Xhn9w0FvyycnFhBme0HhpStin0PB5k+YgLUlOoOMbC5PkoZ+aYYg/C7xAOWpqxwlLPY4akiPQ5ZpWtDT09gA+c2IHSXMmCf2ffMg3chnoWj2e9TBu485rEK0Vcm9HregbL4p24S+uxCG63z9nUSnUrOnrM26ubGiGaM18+in9MCo45QblewmW06tzN2ILdfuzBfQyI="
+
+    # Company AWS S3 bucket where we upload artifacts
+    - AWS_DEFAULT_REGION: "eu-central-1"
+    - AWS_S3_BUCKET_NAME: "download.crossbario.com"
+
 android:
   components:
     - tools
