@@ -6,9 +6,6 @@ language: android
 addons:
   apt:
     update: true
-    packages:
-      # needed for pyenchant, needed for sphinx-spellcheck
-      - libenchant-dev
 
 env:
   global:
@@ -68,4 +65,4 @@ deploy:
     # tags: true
   skip_cleanup: true
   provider: script
-  script: pwd && ls -la && sh .travis-deploy.sh
+  script: pwd && ls -la && find . -name "*.apk" && sh .travis-deploy.sh
