@@ -1,15 +1,14 @@
 sudo: false
 dist: trusty
-
 language: android
-
-addons:
-  apt:
-    update: true
 
 env:
   global:
-    # https://docs.travis-ci.com/user/encryption-keys/
+    # set encrypted S3 credentials needed for deployment (commits on master branch)
+    # we have to set this here instead of only on the deployment providers because
+    # of this https://github.com/travis-ci/travis-ci/issues/6532
+    #
+    # see also: https://docs.travis-ci.com/user/encryption-keys/
 
     # AWS_ACCESS_KEY_ID: travis encrypt -r xbr/xbr-is-gold AWS_ACCESS_KEY_ID=".."
     - secure: "CifuU+uWPg+IelDoKjmL7m1HC++89p7AG8LRfSyy3SUfaub0SQ0ck6zHQvX9GTwx64CSSERF8Vn52cP0iEli0tIrk6k3eqPmfsVyEhRN6Z8rZ4/NfSH7D8CzZEdP+rODWIsxZ1/B0TDj7paYhDdlhBdp75K0ZYHXFyveDcG6RFWillQxfcvi7cpaT0OsVn9Ve8WMtbzZ4LQxTwxdgXDQwCpH41HpE2rCh5pij+0NOpgRYVjiSGjeDlhW96JYuc/jGda74F0PVLQ0Gjxd1M/gtVNXXrtLx3iaG0agiJ/YHitaXx0I1OqpxyfsT5csIP5ICCLv9PHsBioY71gToEXAY2QKJCwTf4zW4+nnelRABDIvszPp/SO5ozcfae+57LkjDlHYaQOUQK66S42c1bTbW6zWGTRCr07/2OC135Det7VTLXklr5OmEy8qQtH32KDqCNGha0NwPfs/9XQPuIt/QX3fpCyFR+0BdPBf7h3Gj6pxpdM4Kvg035oLyW6Y+/AWMd7HtQjlg9L6Olo6UlsraLQIc4u2Zgo5uEc3iK5GiPqYQ2yFGinUxMJmHmFLPZmW493G8j6XFXvUe9FbcLyOh4vrcJX8KEzAF3JdZjND+rkxnP/YFr8H4LGYyjgAhTZQqxnfYHUhp7xgHSclB6rUH4fGLLnQwf0Kg2EGGScHS9I="
@@ -31,10 +30,24 @@ android:
     - 'android-sdk-license-.+'
     - 'google-gdk-license-.+'
 
-# https://docs.travis-ci.com/user/languages/java/
-before_cache:
-  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
-  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
+# https://docs.travis-ci.com/user/customizing-the-build#The-Build-Lifecycle
+#
+# - OPTIONAL Install apt addons
+# - OPTIONAL Install cache components
+# - before_install
+# - install
+# - before_script
+# - script
+# - OPTIONAL before_cache (for cleaning up cache)
+# - after_success or after_failure
+# - OPTIONAL before_deploy
+# - OPTIONAL deploy
+# - OPTIONAL after_deploy
+# - after_script
+
+addons:
+  apt:
+    update: true
 
 cache:
   directories:
@@ -43,19 +56,26 @@ cache:
     - $HOME/.gradle/wrapper/
 
 before_install:
-  # set up awscli package
-  - pip install --user awscli
-  - export PATH=$PATH:$HOME/.local/bin
-  - which aws
-  - aws --version
-  - aws s3 ls ${AWS_S3_BUCKET_NAME}
-
   # https://docs.travis-ci.com/user/environment-variables/
   #
   # TRAVIS_BUILD_NUMBER: The number of the current build (for example, “4”).
   # TRAVIS_TAG: If the current build is for a git tag, this variable is set to the tag’s name.
   # TRAVIS_COMMIT: The commit that the current build is testing.
   - export CROSSBAR_BUILD_ID="$(date --utc "+%Y%m%d")-$(git rev-parse --short ${TRAVIS_COMMIT})"
+
+# https://docs.travis-ci.com/user/languages/java/
+before_cache:
+  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
+
+# _if_ the deploy phase triggers, then this hook is run before and after _every_ deploy provider
+before_deploy:
+  # set up awscli package
+  - pip install --user awscli
+  - export PATH=$PATH:$HOME/.local/bin
+  - which aws
+  - aws --version
+  - aws s3 ls ${AWS_S3_BUCKET_NAME}
 
 # /home/travis/build/xbr/xbr-is-gold/app/build/outputs/apk/release/*
 deploy:
