@@ -86,3 +86,7 @@ deploy:
   skip_cleanup: true
   provider: script
   script: pwd && ls -la && find . -name "*.apk" && sh .travis-deploy.sh
+
+notifications:
+  slack:
+    secure: $$$$
