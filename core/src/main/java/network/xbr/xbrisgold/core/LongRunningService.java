@@ -7,7 +7,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-package network.xbr.xbrisgold;
+package network.xbr.xbrisgold.core;
 
 
 import android.annotation.SuppressLint;
@@ -48,13 +48,13 @@ import io.crossbar.autobahn.wamp.types.RegisterOptions;
 import io.crossbar.autobahn.wamp.types.Registration;
 import io.crossbar.autobahn.wamp.types.SessionDetails;
 import io.crossbar.autobahn.wamp.types.TransportOptions;
-import network.xbr.xbrisgold.database.AppDatabase;
-import network.xbr.xbrisgold.database.DisconnectionStat;
-import network.xbr.xbrisgold.database.LocationLog;
-import network.xbr.xbrisgold.database.NetworkUsageStat;
-import network.xbr.xbrisgold.database.StatsKeyValueStore;
-import network.xbr.xbrisgold.database.WAMPLatencyStat;
-import network.xbr.xbrisgold.database.WAMPLatencyStatDao;
+import network.xbr.xbrisgold.core.database.AppDatabase;
+import network.xbr.xbrisgold.core.database.DisconnectionStat;
+import network.xbr.xbrisgold.core.database.LocationLog;
+import network.xbr.xbrisgold.core.database.NetworkUsageStat;
+import network.xbr.xbrisgold.core.database.StatsKeyValueStore;
+import network.xbr.xbrisgold.core.database.WAMPLatencyStat;
+import network.xbr.xbrisgold.core.database.WAMPLatencyStatDao;
 
 public class LongRunningService extends Service implements OnSharedPreferenceChangeListener {
 
@@ -72,7 +72,7 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
     };
     private static final String[] LOCAL_STATE_INTENTS = {
             MainApplication.INTENT_APP_VISIBILITY_CHANGED,
-            MainActivity.INTENT_LOCATION_ENABLED
+            MainApplication.INTENT_LOCATION_ENABLED
     };
 
     private long mLastConnectRequestTime;

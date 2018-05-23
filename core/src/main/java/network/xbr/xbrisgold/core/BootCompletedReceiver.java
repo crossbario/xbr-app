@@ -7,7 +7,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-package network.xbr.xbrisgold;
+package network.xbr.xbrisgold.core;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;

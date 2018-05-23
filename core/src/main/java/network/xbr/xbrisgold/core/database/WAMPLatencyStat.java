@@ -7,24 +7,18 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-package network.xbr.xbrisgold.database;
+package network.xbr.xbrisgold.core.database;
 
 import android.arch.persistence.room.Entity;
 import android.arch.persistence.room.PrimaryKey;
 
-@Entity(tableName = "location_log")
-public class LocationLog {
+@Entity(tableName = "wamp_latency_stat")
+public class WAMPLatencyStat {
     @PrimaryKey(autoGenerate = true)
     public int uid;
 
-    public double longitude;
+    public long timeSent;
 
-    public double latitude;
+    public long timeReceived;
 
-    public float accuracy;
-
-    @Override
-    public String toString() {
-        return String.format("Location: %s,%s Accuracy: %s", latitude, longitude, accuracy);
-    }
 }

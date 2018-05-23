@@ -24,6 +24,10 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import network.xbr.xbrisgold.core.Helpers;
+import network.xbr.xbrisgold.core.SettingsFragment;
+
+
 public class MainActivity extends AppCompatActivity {
 
     public static final String INTENT_LOCATION_ENABLED = "network.xbr.location_enabled";

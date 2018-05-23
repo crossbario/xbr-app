@@ -7,24 +7,24 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-package network.xbr.xbrisgold.database;
+package network.xbr.xbrisgold.core.database;
 
 import android.arch.persistence.room.Entity;
 import android.arch.persistence.room.PrimaryKey;
 
-@Entity(tableName = "disconnection_stats")
-public class DisconnectionStat {
+@Entity(tableName = "location_log")
+public class LocationLog {
     @PrimaryKey(autoGenerate = true)
     public int uid;
 
-    public String time;
+    public double longitude;
 
-    public String reason;
+    public double latitude;
 
-    public boolean wasNetworkAvailable;
+    public float accuracy;
 
     @Override
     public String toString() {
-        return String.format("Disconnected at %s, reason=%s", time, reason);
+        return String.format("Location: %s,%s Accuracy: %s", latitude, longitude, accuracy);
     }
 }
