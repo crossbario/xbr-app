@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">XBR is Gold</string>
+    <string name="key_policy_wifi_foreground">key_policy_wifi_foreground</string>
+    <string name="key_policy_wifi_background">key_policy_wifi_background</string>
+    <string name="key_policy_wifi_doze">key_policy_wifi_doze</string>
+    <string name="key_policy_mobile_data_foreground">key_policy_mobile_data_foreground</string>
+    <string name="key_policy_mobile_data_background">key_policy_mobile_data_background</string>
+    <string name="key_policy_mobile_data_doze">key_policy_mobile_data_doze</string>
+    <string name="key_location_updates">key_location_updates</string>
+</resources>

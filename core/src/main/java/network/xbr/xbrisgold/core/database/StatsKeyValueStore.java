@@ -7,7 +7,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-package network.xbr.xbrisgold.database;
+package network.xbr.xbrisgold.core.database;
 
 import android.content.Context;
 import android.content.SharedPreferences;

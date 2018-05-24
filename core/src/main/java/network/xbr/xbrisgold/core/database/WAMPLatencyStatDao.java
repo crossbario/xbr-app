@@ -7,7 +7,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-package network.xbr.xbrisgold.database;
+package network.xbr.xbrisgold.core.database;
 
 import android.arch.persistence.room.Dao;
 import android.arch.persistence.room.Insert;
@@ -16,10 +16,10 @@ import android.arch.persistence.room.Query;
 import java.util.List;
 
 @Dao
-public interface LocationLogDao {
-    @Query("SELECT * FROM location_log")
-    List<LocationLog> getAll();
+public interface WAMPLatencyStatDao {
+    @Query("SELECT * FROM wamp_latency_stat")
+    List<WAMPLatencyStat> getAll();
 
     @Insert
-    void insert(LocationLog... log);
+    void insert(WAMPLatencyStat... stats);
 }

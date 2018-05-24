@@ -7,7 +7,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-package network.xbr.xbrisgold;
+package network.xbr.xbrisgold.core;
 
 import android.app.Activity;
 import android.app.Application;
@@ -18,6 +18,7 @@ import android.support.v4.content.LocalBroadcastManager;
 public class MainApplication extends Application {
 
     public static final String INTENT_APP_VISIBILITY_CHANGED = "network.xbr.app_visibility_changed";
+    public static final String INTENT_LOCATION_ENABLED = "network.xbr.location_enabled";
 
     private LocalBroadcastManager mBroadcaster;
     private AppLifecycleHandler mAppLifecycleHandler;

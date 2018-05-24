@@ -7,7 +7,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-package network.xbr.xbrisgold.database;
+package network.xbr.xbrisgold.core.database;
 
 import android.arch.persistence.room.Dao;
 import android.arch.persistence.room.Insert;
@@ -15,11 +15,13 @@ import android.arch.persistence.room.Query;
 
 import java.util.List;
 
+import network.xbr.xbrisgold.core.database.LocationLog;
+
 @Dao
-public interface DisconnectStatDao {
-    @Query("SELECT * FROM disconnection_stats")
-    List<DisconnectionStat> getAll();
+public interface LocationLogDao {
+    @Query("SELECT * FROM location_log")
+    List<LocationLog> getAll();
 
     @Insert
-    void insert(DisconnectionStat... stats);
+    void insert(LocationLog... log);
 }
