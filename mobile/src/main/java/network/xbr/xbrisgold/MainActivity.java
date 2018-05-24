@@ -25,12 +25,11 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 import network.xbr.xbrisgold.core.Helpers;
+import network.xbr.xbrisgold.core.MainApplication;
 import network.xbr.xbrisgold.core.SettingsFragment;
 
 
 public class MainActivity extends AppCompatActivity {
-
-    public static final String INTENT_LOCATION_ENABLED = "network.xbr.location_enabled";
 
     private static final int REQUEST_CODE_NO_BATTERY_OPTIMIZATIONS = 1000;
     private static final int REQUEST_CODE_LOCATION = 1001;
@@ -49,19 +48,11 @@ public class MainActivity extends AppCompatActivity {
                 startActivityForResult(intent, REQUEST_CODE_NO_BATTERY_OPTIMIZATIONS);
             } else {
                 Helpers.startBackgroundService(getApplicationContext());
-                checkLocationPermissions();
+                Helpers.checkLocationPermissions(this, REQUEST_CODE_LOCATION);
             }
         } else {
             Helpers.startBackgroundService(getApplicationContext());
-            checkLocationPermissions();
-        }
-    }
-
-    private void checkLocationPermissions() {
-        if (!Helpers.hasLocationPermission(this)) {
-            ActivityCompat.requestPermissions(this, new String[]
-                    {Manifest.permission.ACCESS_FINE_LOCATION,
-                            Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_CODE_LOCATION);
+            Helpers.checkLocationPermissions(this, REQUEST_CODE_LOCATION);
         }
     }
 
@@ -105,12 +96,12 @@ public class MainActivity extends AppCompatActivity {
                 // https://developer.android.com/training/monitoring-device-state/doze-standby.html
                 Helpers.startBackgroundService(getApplicationContext());
             }
-            checkLocationPermissions();
+            Helpers.checkLocationPermissions(this, REQUEST_CODE_LOCATION);
         } else if (requestCode == REQUEST_CODE_LOCATION) {
             if (resultCode == SUCCESS_CODE) {
                 LocalBroadcastManager broadcaster = LocalBroadcastManager.getInstance(
                         getApplicationContext());
-                Intent intent = new Intent(INTENT_LOCATION_ENABLED);
+                Intent intent = new Intent(MainApplication.INTENT_LOCATION_ENABLED);
                 intent.putExtra("enabled", true);
                 broadcaster.sendBroadcast(intent);
             } else {

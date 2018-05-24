@@ -9,6 +9,8 @@
 
 package network.xbr.xbrisgold.core;
 
+import android.Manifest;
+import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
 import android.app.Application;
@@ -156,6 +158,14 @@ public class Helpers {
     public static void startBackgroundService(Context ctx) {
         if (!isServiceRunning(ctx)) {
             ctx.startService(new Intent(ctx, LongRunningService.class));
+        }
+    }
+
+    public static void checkLocationPermissions(Activity activity, int requestCode) {
+        if (!Helpers.hasLocationPermission(activity)) {
+            ActivityCompat.requestPermissions(activity, new String[]
+                    {Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION}, requestCode);
         }
     }
 }
