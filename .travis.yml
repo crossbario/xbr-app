@@ -87,16 +87,33 @@ deploy:
   provider: script
   script: pwd && ls -la && find . -name "*.apk" && sh .travis-deploy.sh
 
+# CI notifications
 notifications:
-  # https://crossbario.slack.com/services/BAWF261FE#service_setup
-  # travis encrypt "crossbario:<SECRET>" -r xbr/xbr-is-gold
-  slack:
-    - secure: "P9CwD6RPSwErFTAfNi56OZzNxqn0OEVeWZTzoNyrh1jb9PzyPwHY8yIho8TOBpQcUALKFPxhqWDvXZRgeOmcskRXhg0RGX57BThvyMXNr/WKXfgJj86fuw1vte10SKJ8mOmxCV7ipFyfW/wnjwwNH6MXmn79mGBVh+PyQCw4s17iokXz6gGrnE6eQ2nhWiusZdl126sVUzazA4bQ99/KDYFH6tTYm5g1eBLBhq83u4dxQgEFEP+C9/Z/CKvybaffVYGequ6i/YxuyD58yR0Rwj4gPg1eRR53G3CpWHp2vn1K/Ko7clyUiFOG0IzsMdvfK/GSAm3HcbbQj74p6B/X/CmBAt3gxzU94zcaHgo+zNmIPea2M5nBe7tqsCOSbq3v/0DZyTeKehACoxFD4ehq7a1RCpqjzW4ANEMRDv/+dOUcF1MpJC6fgC70YrfgRjd2svHsM4rp2LuWsMHD6RmrHcspm+YFj31EIjLeBVFd87C3vfQRzpGd8zRCf5NPVX0EmyELuxGKOTy1GY2Z8vRFafobZcwRa6BubIqYub+Dk+gBmTjM1n1nufKgnIIxuPqA5wwwPGbefxFzM6GV9o6euGgyY3mQi95bjPBYVBa4CAgvVkdbe7tzrkkpSxSYD7pB+xDnepg4F73y6LhFWzRzPDWvsf6RtDbUDNvGOqGzsK4="
+  # IRC: chat messages on #crossbar-ci @ freenode
+  irc:
+    on_success: always  # options: [always|never|change] default: always
+    on_failure: always  # options: [always|never|change] default: always
+    on_start: always    # options: [always|never|change] default: always
+    channels:
+      - "irc.freenode.org##crossbar-ci"
+    use_notice: true
+    skip_join: true
 
-#notifications:
-#  webhooks:
-#    urls:
-#      - secure: "Y8ZHoRwr1PRiBvnGRms3fHA8iznOhdESOwvKrAxRC6HJpqChZ3ScWoiDYk8DWEDDFnTx7uvozhDFGA1epZbpjtzRHeBC5zpbe9TvaPU1Ub8C7xGcg7+DVkQxV3esDr5gucdtuS1JB5KH/1rsLUWS06ymAb83CN1SVWajzA0yTYM1H2vm5G+ehikrEM+ACHyQQ8h40zojT9LRZAJmuqOhppQ6NmfL6MR4t5kEMRY/W37stsw0ne3tGWNRgj96Ho0Xf05HhwsGFPJ5hZKzL/oRMvc18/1UpWELn3Ax2fqjNlYLPk+R2yxrBO2Pib/9mJtXgdWS469NNm67CkczTUD1fGf+JlvvV4fKah9S6J2NHDRd69FmgTBzd16DOJUbrQqpSdnsvUt1N6wJHlUdmlY9/MRw2oKSzG0zY3Eg+u3wzeaCVdnFDcRA41qjjE5AVtTWX7oadyLlQnRgl9/yQYTsCfTpzpX4uXbScL7d17DFQ0VRJnsTWKYXCqwrgjEQQejLlQyD/ijgdE3ys/wAP+rpHj8/5MWYcG7OdnDblJUzLSfZDPmwb9esvT7ObU/ZRU+jgEnueKh7mxssKd5XonuEixiy8vHwT3DN0OHszoFkkxVLMVaENhpQlL75HWSw1T0lneEKBzOisK77iuuj+Z9CIXj9jb/QcUfcOLTgcx/rSNY="
-#    on_success: change  # options: [always|never|change] default: always
-#    on_failure: always  # options: [always|never|change] default: always
-#    on_start: never     # options: [always|never|change] default: always
+  # Gitter: activity feed on https://gitter.im/crossbario/ci
+  webhooks:
+    on_success: always  # options: [always|never|change] default: always
+    on_failure: always  # options: [always|never|change] default: always
+    on_start: always    # options: [always|never|change] default: always
+    urls:
+      # travis encrypt "https://webhooks.gitter.im/e/7e.." -r xbr/xbr-is-gold
+      - secure: Y8ZHoRwr1PRiBvnGRms3fHA8iznOhdESOwvKrAxRC6HJpqChZ3ScWoiDYk8DWEDDFnTx7uvozhDFGA1epZbpjtzRHeBC5zpbe9TvaPU1Ub8C7xGcg7+DVkQxV3esDr5gucdtuS1JB5KH/1rsLUWS06ymAb83CN1SVWajzA0yTYM1H2vm5G+ehikrEM+ACHyQQ8h40zojT9LRZAJmuqOhppQ6NmfL6MR4t5kEMRY/W37stsw0ne3tGWNRgj96Ho0Xf05HhwsGFPJ5hZKzL/oRMvc18/1UpWELn3Ax2fqjNlYLPk+R2yxrBO2Pib/9mJtXgdWS469NNm67CkczTUD1fGf+JlvvV4fKah9S6J2NHDRd69FmgTBzd16DOJUbrQqpSdnsvUt1N6wJHlUdmlY9/MRw2oKSzG0zY3Eg+u3wzeaCVdnFDcRA41qjjE5AVtTWX7oadyLlQnRgl9/yQYTsCfTpzpX4uXbScL7d17DFQ0VRJnsTWKYXCqwrgjEQQejLlQyD/ijgdE3ys/wAP+rpHj8/5MWYcG7OdnDblJUzLSfZDPmwb9esvT7ObU/ZRU+jgEnueKh7mxssKd5XonuEixiy8vHwT3DN0OHszoFkkxVLMVaENhpQlL75HWSw1T0lneEKBzOisK77iuuj+Z9CIXj9jb/QcUfcOLTgcx/rSNY=
+
+  # Slack: post feed on https://crossbario.slack.com/messages/CAT527K8D
+  # https://crossbario.slack.com/services/BAWF261FE#service_setup
+  slack:
+    on_success: always  # options: [always|never|change] default: always
+    on_failure: always  # options: [always|never|change] default: always
+    on_start: always    # options: [always|never|change] default: always
+    rooms:
+      # travis encrypt "crossbario:<SECRET>" -r xbr/xbr-is-gold
+      - secure: P9CwD6RPSwErFTAfNi56OZzNxqn0OEVeWZTzoNyrh1jb9PzyPwHY8yIho8TOBpQcUALKFPxhqWDvXZRgeOmcskRXhg0RGX57BThvyMXNr/WKXfgJj86fuw1vte10SKJ8mOmxCV7ipFyfW/wnjwwNH6MXmn79mGBVh+PyQCw4s17iokXz6gGrnE6eQ2nhWiusZdl126sVUzazA4bQ99/KDYFH6tTYm5g1eBLBhq83u4dxQgEFEP+C9/Z/CKvybaffVYGequ6i/YxuyD58yR0Rwj4gPg1eRR53G3CpWHp2vn1K/Ko7clyUiFOG0IzsMdvfK/GSAm3HcbbQj74p6B/X/CmBAt3gxzU94zcaHgo+zNmIPea2M5nBe7tqsCOSbq3v/0DZyTeKehACoxFD4ehq7a1RCpqjzW4ANEMRDv/+dOUcF1MpJC6fgC70YrfgRjd2svHsM4rp2LuWsMHD6RmrHcspm+YFj31EIjLeBVFd87C3vfQRzpGd8zRCf5NPVX0EmyELuxGKOTy1GY2Z8vRFafobZcwRa6BubIqYub+Dk+gBmTjM1n1nufKgnIIxuPqA5wwwPGbefxFzM6GV9o6euGgyY3mQi95bjPBYVBa4CAgvVkdbe7tzrkkpSxSYD7pB+xDnepg4F73y6LhFWzRzPDWvsf6RtDbUDNvGOqGzsK4=
