@@ -105,8 +105,8 @@ notifications:
     on_failure: always  # options: [always|never|change] default: always
     on_start: always    # options: [always|never|change] default: always
     urls:
-      # travis encrypt "https://webhooks.gitter.im/e/7e.." -r xbr/xbr-is-gold
-      - secure: Y8ZHoRwr1PRiBvnGRms3fHA8iznOhdESOwvKrAxRC6HJpqChZ3ScWoiDYk8DWEDDFnTx7uvozhDFGA1epZbpjtzRHeBC5zpbe9TvaPU1Ub8C7xGcg7+DVkQxV3esDr5gucdtuS1JB5KH/1rsLUWS06ymAb83CN1SVWajzA0yTYM1H2vm5G+ehikrEM+ACHyQQ8h40zojT9LRZAJmuqOhppQ6NmfL6MR4t5kEMRY/W37stsw0ne3tGWNRgj96Ho0Xf05HhwsGFPJ5hZKzL/oRMvc18/1UpWELn3Ax2fqjNlYLPk+R2yxrBO2Pib/9mJtXgdWS469NNm67CkczTUD1fGf+JlvvV4fKah9S6J2NHDRd69FmgTBzd16DOJUbrQqpSdnsvUt1N6wJHlUdmlY9/MRw2oKSzG0zY3Eg+u3wzeaCVdnFDcRA41qjjE5AVtTWX7oadyLlQnRgl9/yQYTsCfTpzpX4uXbScL7d17DFQ0VRJnsTWKYXCqwrgjEQQejLlQyD/ijgdE3ys/wAP+rpHj8/5MWYcG7OdnDblJUzLSfZDPmwb9esvT7ObU/ZRU+jgEnueKh7mxssKd5XonuEixiy8vHwT3DN0OHszoFkkxVLMVaENhpQlL75HWSw1T0lneEKBzOisK77iuuj+Z9CIXj9jb/QcUfcOLTgcx/rSNY=
+      # travis encrypt "https://webhooks.gitter.im/e/a42..." --org -r xbr/xbr-is-gold
+      - secure: "czB3oOQja29U/20H6wCLlgf1M8llvUorhc5ASShbWiODqEI6c5pEXrdr8fNLxu2FsRax0S2oIcBr1F/Aa7Swyts4fz2r4ygOyeP3rT8DNSKhsMjIoAyp0kSIpF2ITjPAojKNwaSUWy5V0kZZmAhDLHLIG+Ur3s+hxJpTDOUQ30ItdOLjKiF5bqLynFkuE+5Y8LYf2Twc3sPFnbClRfIxu4AdHT54jNL2yz7wtEZYrYDd63LEakiRcS4Mn12rv1erJhl9IfhSHuAgJO1pX9P4uR17VDs+RXRifJBwy+VntizWBMnmF0m8lk76ZOuEP+BHCI0vF+RCALfPB8p0Xm8pc9kUZLueQRGU8BMv+TauEYQqUrPMJnmGtnldiP5pUuepnS2DX/1OeXotsE21npMhxtfbG+liqT9DLUKNLGiZBgExjyigyW9NbTx0x10mimBJKXUHhydyCPy7J9cLcmrL5mkVtMsJDEXHv/1lIYPHneguI27p6QZj+OLcqKzXwdsZ6ZFduX3pWkv8sQZsVWY4p/ovS7MeRJO2Ewp0s+bJ3OAXle1y2Aw5pCN1ResD5U8arCXq18Sq/WAvOUHQLvTPePoVILyfLQHIRKh8hOHrBvOfN7udV42HhT4o/Yfvnxk+RH4a7kCVFIu57B3RBrcV1Zc5R5CRCwq3vAOKqupW0/w="
 
   # Slack: post feed on https://crossbario.slack.com/messages/CAT527K8D
   # https://crossbario.slack.com/services/
