@@ -95,7 +95,7 @@ notifications:
     on_failure: always  # options: [always|never|change] default: always
     on_start: always    # options: [always|never|change] default: always
     channels:
-      - "irc.freenode.org##crossbar-ci"
+      - "irc.freenode.org#crossbar-ci"
     use_notice: true
     skip_join: true
 
@@ -109,11 +109,11 @@ notifications:
       - secure: Y8ZHoRwr1PRiBvnGRms3fHA8iznOhdESOwvKrAxRC6HJpqChZ3ScWoiDYk8DWEDDFnTx7uvozhDFGA1epZbpjtzRHeBC5zpbe9TvaPU1Ub8C7xGcg7+DVkQxV3esDr5gucdtuS1JB5KH/1rsLUWS06ymAb83CN1SVWajzA0yTYM1H2vm5G+ehikrEM+ACHyQQ8h40zojT9LRZAJmuqOhppQ6NmfL6MR4t5kEMRY/W37stsw0ne3tGWNRgj96Ho0Xf05HhwsGFPJ5hZKzL/oRMvc18/1UpWELn3Ax2fqjNlYLPk+R2yxrBO2Pib/9mJtXgdWS469NNm67CkczTUD1fGf+JlvvV4fKah9S6J2NHDRd69FmgTBzd16DOJUbrQqpSdnsvUt1N6wJHlUdmlY9/MRw2oKSzG0zY3Eg+u3wzeaCVdnFDcRA41qjjE5AVtTWX7oadyLlQnRgl9/yQYTsCfTpzpX4uXbScL7d17DFQ0VRJnsTWKYXCqwrgjEQQejLlQyD/ijgdE3ys/wAP+rpHj8/5MWYcG7OdnDblJUzLSfZDPmwb9esvT7ObU/ZRU+jgEnueKh7mxssKd5XonuEixiy8vHwT3DN0OHszoFkkxVLMVaENhpQlL75HWSw1T0lneEKBzOisK77iuuj+Z9CIXj9jb/QcUfcOLTgcx/rSNY=
 
   # Slack: post feed on https://crossbario.slack.com/messages/CAT527K8D
-  # https://crossbario.slack.com/services/BAWF261FE#service_setup
+  # https://crossbario.slack.com/services/
   slack:
     on_success: always  # options: [always|never|change] default: always
     on_failure: always  # options: [always|never|change] default: always
     on_start: always    # options: [always|never|change] default: always
     rooms:
-      # travis encrypt "crossbario:<SECRET>" -r xbr/xbr-is-gold
-      - secure: P9CwD6RPSwErFTAfNi56OZzNxqn0OEVeWZTzoNyrh1jb9PzyPwHY8yIho8TOBpQcUALKFPxhqWDvXZRgeOmcskRXhg0RGX57BThvyMXNr/WKXfgJj86fuw1vte10SKJ8mOmxCV7ipFyfW/wnjwwNH6MXmn79mGBVh+PyQCw4s17iokXz6gGrnE6eQ2nhWiusZdl126sVUzazA4bQ99/KDYFH6tTYm5g1eBLBhq83u4dxQgEFEP+C9/Z/CKvybaffVYGequ6i/YxuyD58yR0Rwj4gPg1eRR53G3CpWHp2vn1K/Ko7clyUiFOG0IzsMdvfK/GSAm3HcbbQj74p6B/X/CmBAt3gxzU94zcaHgo+zNmIPea2M5nBe7tqsCOSbq3v/0DZyTeKehACoxFD4ehq7a1RCpqjzW4ANEMRDv/+dOUcF1MpJC6fgC70YrfgRjd2svHsM4rp2LuWsMHD6RmrHcspm+YFj31EIjLeBVFd87C3vfQRzpGd8zRCf5NPVX0EmyELuxGKOTy1GY2Z8vRFafobZcwRa6BubIqYub+Dk+gBmTjM1n1nufKgnIIxuPqA5wwwPGbefxFzM6GV9o6euGgyY3mQi95bjPBYVBa4CAgvVkdbe7tzrkkpSxSYD7pB+xDnepg4F73y6LhFWzRzPDWvsf6RtDbUDNvGOqGzsK4=
+      # travis encrypt "crossbario:FYg.." --org -r xbr/xbr-is-gold
+      - secure: "qvg4qz9dPwlBf5/Snl4wGJ5cv1RmNXQcGeyuf+yWO77lJN1xREXyN/SKPIZ6ATJitU7m20c2z/LjUfs+bhZ0yVS600MxOQG3yySqSCRtnnaL2LpTcAArSgnGQ+94QHq3ZzxCx1CMUYGD/ZRUELdY1GG4FoJJT1VJmHaH/bCuCxv2w3vIpYe+SB5R0yrdaiZjybRM2Ov5Ri1FpdiBTxd77U0e/zmAV9uEZDggG9nQ8VKkts3k2Tv8IOhSXE1tjXorT26HlDNYFdzf0OB/YUWjF0IOrgFmFdi9qojcq//3krQuc2yttDwBslsqgf9f5t199r8NdTsNFy+Jmps6SBcVLDElHvIzgsVbwXKwRotv4UsoRj21xWOtka2012QuA4Q/lZB9BFVpRBpnR6D31aY3CPTEGo1GVNt8E67y2jiIOoEZK/XmnbNYfsupghdVorgQxffcKhzcidkLi4t3dDKs0Jea8zFCdXGJFXQlErDYCIJMN57hlT93pm4WG4dYhZsNQnG0e/7NLi8pHIHVU+uTTbCSJY7H+j/lNm1c3vUs6vvmkDzSwXGgfe3OaYmFQmdH23nTUiEwzyRpuwpasxheWe9qt+t3ry1Djw8B7v4Hwh+kB8aEGrSJdTZm38Mev9p190K6iIScpsoE6H8VXczdUfodL/B7RZAf/Fd3YjoOcCI="
