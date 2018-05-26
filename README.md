@@ -5,3 +5,5 @@
 [![Download-CDN](https://img.shields.io/badge/cached-download-ff69b4.svg?style=flat)](https://download.crossbario.com/?prefix=xbr-is-gold/)
 
 XBR-is-Gold turns an Android device into a XBR data provider, allowing it to act as a secure, controlled data source in XBR data markets.
+
+---
