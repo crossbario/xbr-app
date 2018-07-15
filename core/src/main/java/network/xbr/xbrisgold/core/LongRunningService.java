@@ -263,7 +263,7 @@ public class LongRunningService extends Service implements OnSharedPreferenceCha
                 "test@crossbario.com",
                 "ef83d35678742e01fa412d597cd3909c113b12a8a7dc101cba073c0423c9db41",
                 "e5b0d24af05c77d644de885946147aeb4fa6897a5cf4eb14347c3d637664b117");
-        mWAMPClient = new Client(mSession, "ws://178.62.69.210:8080/ws", "realm1", auth);
+        mWAMPClient = new Client(mSession, "ws://209.97.191.49:8080/ws", "realm1", auth);
 
         TransportOptions options = new TransportOptions();
         options.setAutoPingInterval(Helpers.getProfilePingInterval(getApplication()));
