@@ -7,18 +7,24 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-package network.xbr.xbrisgold.core.database;
+package io.crossbar.crossbarfxmarkets.core.database;
 
 import android.arch.persistence.room.Entity;
 import android.arch.persistence.room.PrimaryKey;
 
-@Entity(tableName = "wamp_latency_stat")
-public class WAMPLatencyStat {
+@Entity(tableName = "disconnection_stats")
+public class DisconnectionStat {
     @PrimaryKey(autoGenerate = true)
     public int uid;
 
-    public long timeSent;
+    public String time;
 
-    public long timeReceived;
+    public String reason;
 
+    public boolean wasNetworkAvailable;
+
+    @Override
+    public String toString() {
+        return String.format("Disconnected at %s, reason=%s", time, reason);
+    }
 }

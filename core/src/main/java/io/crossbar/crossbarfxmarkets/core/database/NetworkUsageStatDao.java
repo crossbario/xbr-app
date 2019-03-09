@@ -7,7 +7,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-package network.xbr.xbrisgold.core.database;
+package io.crossbar.crossbarfxmarkets.core.database;
 
 import android.arch.persistence.room.Dao;
 import android.arch.persistence.room.Insert;
@@ -15,13 +15,11 @@ import android.arch.persistence.room.Query;
 
 import java.util.List;
 
-import network.xbr.xbrisgold.core.database.DisconnectionStat;
-
 @Dao
-public interface DisconnectStatDao {
-    @Query("SELECT * FROM disconnection_stats")
-    List<DisconnectionStat> getAll();
+public interface NetworkUsageStatDao {
+    @Query("SELECT * FROM network_usage_stats")
+    List<NetworkUsageStat> getAll();
 
     @Insert
-    void insert(DisconnectionStat... stats);
+    void insert(NetworkUsageStat... stats);
 }

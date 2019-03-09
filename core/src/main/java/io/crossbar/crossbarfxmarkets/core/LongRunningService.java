@@ -7,7 +7,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-package network.xbr.xbrisgold.core;
+package io.crossbar.crossbarfxmarkets.core;
 
 
 import android.annotation.SuppressLint;
@@ -48,13 +48,13 @@ import io.crossbar.autobahn.wamp.types.RegisterOptions;
 import io.crossbar.autobahn.wamp.types.Registration;
 import io.crossbar.autobahn.wamp.types.SessionDetails;
 import io.crossbar.autobahn.wamp.types.TransportOptions;
-import network.xbr.xbrisgold.core.database.AppDatabase;
-import network.xbr.xbrisgold.core.database.DisconnectionStat;
-import network.xbr.xbrisgold.core.database.LocationLog;
-import network.xbr.xbrisgold.core.database.NetworkUsageStat;
-import network.xbr.xbrisgold.core.database.StatsKeyValueStore;
-import network.xbr.xbrisgold.core.database.WAMPLatencyStat;
-import network.xbr.xbrisgold.core.database.WAMPLatencyStatDao;
+import io.crossbar.crossbarfxmarkets.core.database.AppDatabase;
+import io.crossbar.crossbarfxmarkets.core.database.DisconnectionStat;
+import io.crossbar.crossbarfxmarkets.core.database.LocationLog;
+import io.crossbar.crossbarfxmarkets.core.database.NetworkUsageStat;
+import io.crossbar.crossbarfxmarkets.core.database.StatsKeyValueStore;
+import io.crossbar.crossbarfxmarkets.core.database.WAMPLatencyStat;
+import io.crossbar.crossbarfxmarkets.core.database.WAMPLatencyStatDao;
 
 public class LongRunningService extends Service implements OnSharedPreferenceChangeListener {
 

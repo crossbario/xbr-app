@@ -7,7 +7,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-package network.xbr.xbrisgold.core.database;
+package io.crossbar.crossbarfxmarkets.core.database;
 
 import android.arch.persistence.room.Dao;
 import android.arch.persistence.room.Insert;
@@ -16,10 +16,10 @@ import android.arch.persistence.room.Query;
 import java.util.List;
 
 @Dao
-public interface WAMPLatencyStatDao {
-    @Query("SELECT * FROM wamp_latency_stat")
-    List<WAMPLatencyStat> getAll();
+public interface DisconnectStatDao {
+    @Query("SELECT * FROM disconnection_stats")
+    List<DisconnectionStat> getAll();
 
     @Insert
-    void insert(WAMPLatencyStat... stats);
+    void insert(DisconnectionStat... stats);
 }

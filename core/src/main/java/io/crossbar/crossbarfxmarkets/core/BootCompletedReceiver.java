@@ -7,7 +7,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-package network.xbr.xbrisgold.core;
+package io.crossbar.crossbarfxmarkets.core;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;

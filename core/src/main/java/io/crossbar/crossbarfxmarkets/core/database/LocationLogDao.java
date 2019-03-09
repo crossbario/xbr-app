@@ -7,7 +7,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-package network.xbr.xbrisgold.core.database;
+package io.crossbar.crossbarfxmarkets.core.database;
 
 import android.arch.persistence.room.Dao;
 import android.arch.persistence.room.Insert;
@@ -16,10 +16,10 @@ import android.arch.persistence.room.Query;
 import java.util.List;
 
 @Dao
-public interface NetworkUsageStatDao {
-    @Query("SELECT * FROM network_usage_stats")
-    List<NetworkUsageStat> getAll();
+public interface LocationLogDao {
+    @Query("SELECT * FROM location_log")
+    List<LocationLog> getAll();
 
     @Insert
-    void insert(NetworkUsageStat... stats);
+    void insert(LocationLog... log);
 }

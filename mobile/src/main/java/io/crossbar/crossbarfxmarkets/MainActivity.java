@@ -7,9 +7,8 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-package network.xbr.xbrisgold;
+package io.crossbar.crossbarfxmarkets;
 
-import android.Manifest;
 import android.app.FragmentManager;
 import android.content.Context;
 import android.content.Intent;
@@ -18,15 +17,14 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.provider.Settings;
-import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 
-import network.xbr.xbrisgold.core.Helpers;
-import network.xbr.xbrisgold.core.MainApplication;
-import network.xbr.xbrisgold.core.SettingsFragment;
+import io.crossbar.crossbarfxmarkets.core.Helpers;
+import io.crossbar.crossbarfxmarkets.core.MainApplication;
+import io.crossbar.crossbarfxmarkets.core.SettingsFragment;
 
 
 public class MainActivity extends AppCompatActivity {
