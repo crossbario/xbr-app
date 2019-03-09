@@ -1,4 +1,4 @@
-# XBR-is-Gold
+# CrossbarFX Markets
 
 [![Travis](https://travis-ci.org/xbr/xbr-is-gold.svg?branch=master)](https://travis-ci.org/xbr/xbr-is-gold)
 [![Download-S3](https://img.shields.io/badge/origin-download-ff69b4.svg?style=flat)](https://s3.eu-central-1.amazonaws.com/download.crossbario.com/index.html?prefix=xbr-is-gold/)
