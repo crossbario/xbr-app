@@ -1,13 +1,11 @@
-///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////
 //
-//   XBR is Gold - https://xbr.network
+//   CrossbarFX Markets
+//   Copyright (C) Crossbar.io Technologies GmbH. All rights reserved.
 //
-//   Copyright (c) Crossbar.io Technologies GmbH. All rights reserved
-//   Licensed under the GPL 3.0 https://opensource.org/licenses/GPL-3.0
-//
-///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////
 
-package network.xbr.xbrisgold.core.database;
+package io.crossbar.crossbarfxmarkets.core.database;
 
 import android.arch.persistence.room.Entity;
 import android.arch.persistence.room.PrimaryKey;

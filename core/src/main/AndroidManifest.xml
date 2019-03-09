@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="network.xbr.xbrisgold.core">
+    package="io.crossbar.crossbarfxmarkets.core">
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <application

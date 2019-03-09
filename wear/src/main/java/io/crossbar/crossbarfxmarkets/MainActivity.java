@@ -1,4 +1,11 @@
-package network.xbr.xbrisgold;
+///////////////////////////////////////////////////////////////////////////
+//
+//   CrossbarFX Markets
+//   Copyright (C) Crossbar.io Technologies GmbH. All rights reserved.
+//
+///////////////////////////////////////////////////////////////////////////
+
+package io.crossbar.crossbarfxmarkets;
 
 import android.app.FragmentManager;
 import android.content.Intent;
@@ -7,9 +14,10 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.support.wearable.activity.WearableActivity;
 import android.widget.TextView;
 
-import network.xbr.xbrisgold.core.Helpers;
-import network.xbr.xbrisgold.core.MainApplication;
-import network.xbr.xbrisgold.core.SettingsFragment;
+import io.crossbar.crossbarfxmarkets.core.Helpers;
+import io.crossbar.crossbarfxmarkets.core.MainApplication;
+import io.crossbar.crossbarfxmarkets.core.SettingsFragment;
+
 
 public class MainActivity extends WearableActivity {
 
