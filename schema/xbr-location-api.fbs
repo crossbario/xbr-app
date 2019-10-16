@@ -17,95 +17,72 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 
-/*
-
-time: uint64;
-lon: double;
-lat: double;
-
-
-
-on_tile_move
-on_tile_enter
-on_tile_leave
-
-// zoom level: [0, 20]
-
-https://wiki.openstreetmap.org/wiki/Zoom_levels
-https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#Resolution_and_Scale
-https://wiki.openstreetmap.org/wiki/Tile_disk_usage
-
-// <zoom>.<xtile>.<ytile>
-
-
-precision (for storage and transmission):
-  rounded to 7 decimals
-  effectively 100 nano grad (better than 11mm)
-  "centimetric precision"
-
-https://wiki.openstreetmap.org/wiki/Node
-https://wiki.openstreetmap.org/wiki/Converting_to_WGS84
-https://wiki.openstreetmap.org/wiki/Precision_of_coordinates
-https://wiki.openstreetmap.org/wiki/Altitude
-
-10 m 	4
-1 m 	5
-0,1 m 	6
-
-
-payload = {
-    'timestamp': timestamp,
-    'lon': lon,
-    'lat': lat,
-    'alt': alt
-}
-
-
-zoom
-sample period
-batch duration
-
-    /// Period (uniform) between samples taken in ms.
-    period: uint32;
-
-*/
-
-
-//
-// Example application level use of Flatbuffers with WAMP.
-//
-
+/// Include common definitions for WAMP.
 include "wamp.fbs";
 
 /// Our location API lives in this namespace.
 namespace location;
 
 
-/// One location sample.
-struct LocationSample
+/// A single location sample (mostly for on_tile_enter/on_tile_leave).
+table Location
 {
-    /// WGS84 longitude, rounded to 7 decimals.
+    /// Persistent (static) ID of the entity tracking its location.
+    entity: [uint8] (uuid);
+
+    /// Sample: point in time (UTC) when sample was measured, in Unix time (ns precision).
+    timestamp: uint64;
+
+    /// Sample: WGS84 longitude, rounded to 7 decimals.
     lon: double;
 
-    /// WGS84 latitude, rounded to 7 decimals.
+    /// Sample: WGS84 latitude, rounded to 7 decimals.
     lat: double;
 }
+
 
 /// A series of location samples.
 table LocationSeries
 {
-    /// Point in time (UTC) when sample batch was recorded (start thereof) in Unix time (ns precision).
-    start: uint64;
+    /// Persistent (static) ID of the entity tracking its location.
+    entity: [uint8] (uuid);
 
-    /// Sample batch with locations.
-    samples: [LocationSample];
+    /// Samples: point in time (UTC) when sample was measured, in Unix time (ns precision).
+    timestamp: [uint64];
+
+    /// Samples: WGS84 longitude, rounded to 7 decimals.
+    lon: [double];
+
+    /// Samples: WGS84 latitude, rounded to 7 decimals.
+    lat: [double];
 }
 
-/// Define an interface for accelerometer storage services.
+
+/**
+ * Interface for simple location services.
+ *
+ * URI structure: PREFIX/<zoom>.<xtile>.<ytile>
+ *
+ * where zoom is fixed for the API at 12.
+ *
+ * See also:
+ *  - https://wiki.openstreetmap.org/wiki/Zoom_levels
+ *  - https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#Resolution_and_Scale
+ *  - https://wiki.openstreetmap.org/wiki/Tile_disk_usage
+ *  - https://wiki.openstreetmap.org/wiki/Node
+ *  - https://wiki.openstreetmap.org/wiki/Converting_to_WGS84
+ *  - https://wiki.openstreetmap.org/wiki/Precision_of_coordinates
+ *  - https://wiki.openstreetmap.org/wiki/Altitude
+ */
 rpc_service Location (type: "interface",
                       uuid: "4b740947-31d5-4a10-b7ce-4149bbc9ee1e")
 {
-    /// Event fired when a sample batch was stored. The time range
-    /// of the stored samples is provided as event payload.
-    on_location (LocationSeries): Void (type: "topic");
+    /// Event published for a new LocationSeries (effective topic URI is PREFIX/<zoom>.<xtile>.<ytile>/on_location_series)
+    on_location_series (LocationSeries): Void (type: "topic");
+
+    /// Event published when the tracked entity entered the respective tile (effective topic URI is PREFIX/<zoom>.<xtile>.<ytile>/on_location_series)
+    on_tile_enter (Location): Void (type: "topic");
+
+    /// Event published when the tracked entity left the respective tile (effective topic URI is PREFIX/<zoom>.<xtile>.<ytile>/on_location_series)
+    on_tile_leave (Location): Void (type: "topic");
 }
