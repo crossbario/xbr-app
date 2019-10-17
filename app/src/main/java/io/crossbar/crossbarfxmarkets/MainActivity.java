@@ -7,57 +7,58 @@
 
 package io.crossbar.crossbarfxmarkets;
 
-import android.Manifest;
-import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-
-import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
-import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 
 
 public class MainActivity extends AppCompatActivity {
 
     private static final int LOCATION_REQUEST_CODE = 1000;
+    private static final int PERMISSION_GRANTED = 0;
+
+    private BackgroundService mService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        ensureLocationPermissions(this, LOCATION_REQUEST_CODE);
     }
 
-    public static boolean hasLocationPermission(Context ctx) {
-        return ContextCompat.checkSelfPermission(ctx, ACCESS_FINE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED
-                && ContextCompat.checkSelfPermission(ctx, ACCESS_COARSE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED;
-    }
-
-    public void ensureLocationPermissions(Activity activity, int requestCode) {
-        if (hasLocationPermission(activity)) {
-            startService(new Intent(getApplicationContext(), BackgroundService.class));
-        } else {
-            ActivityCompat.requestPermissions(activity, new String[]
-                    {Manifest.permission.ACCESS_FINE_LOCATION,
-                            Manifest.permission.ACCESS_COARSE_LOCATION}, requestCode);
-        }
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Util.ensureServiceRunning(getApplicationContext());
+        Util.ensureLocationPermissionsAndBind(MainActivity.this, mConnection,
+                LOCATION_REQUEST_CODE);
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
         if (requestCode == LOCATION_REQUEST_CODE) {
-            if (grantResults[0] == 0 && grantResults[1] == 0) {
-                startService(new Intent(getApplicationContext(), BackgroundService.class));
+            if (grantResults[0] == PERMISSION_GRANTED) {
+                Intent intent = new Intent(getApplicationContext(), BackgroundService.class);
+                bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
             }
         }
     }
+
+    private ServiceConnection mConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            mService = ((BackgroundService.LocalBinder) service).getService();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName className) {
+            mService = null;
+        }
+    };
 }
