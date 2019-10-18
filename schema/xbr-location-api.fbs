@@ -63,7 +63,7 @@ table LocationSeries
  *
  * URI structure: PREFIX/<zoom>.<xtile>.<ytile>
  *
- * where zoom is fixed for the API at 12.
+ * where zoom is fixed for the API at zoom=12 with location samples every 10 seconds.
  *
  * See also:
  *  - https://wiki.openstreetmap.org/wiki/Zoom_levels
