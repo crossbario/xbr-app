@@ -1,6 +1,5 @@
 package io.crossbar.crossbarfxmarkets.database;
 
-import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.ForeignKey;
@@ -11,8 +10,8 @@ import androidx.room.PrimaryKey;
                 parentColumns = "uid",
                 childColumns = "batch_id"))
 public class XLocation {
-    @PrimaryKey @NonNull public String uid;
-    @ColumnInfo(name = "batch_id", index = true) public String batchID;
+    @PrimaryKey(autoGenerate = true) public int uid;
+    @ColumnInfo(name = "batch_id", index = true) public int batchID;
 
     public double latitude;
     public double longitude;

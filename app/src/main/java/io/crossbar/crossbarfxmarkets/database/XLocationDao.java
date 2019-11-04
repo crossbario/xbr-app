@@ -12,7 +12,7 @@ public interface XLocationDao {
     List<XLocation> getAll();
 
     @Query("SELECT * from locations where batch_id = :batchID")
-    public List<XLocation> getLocationsByBatchID(String batchID);
+    public List<XLocation> getLocationsByBatchID(long batchID);
 
     @Insert
     void insert(XLocation... locations);
