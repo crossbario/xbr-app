@@ -15,17 +15,12 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.location.Location;
 import android.media.RingtoneManager;
-import android.net.ConnectivityManager;
-import android.net.Network;
-import android.net.NetworkCapabilities;
-import android.net.NetworkRequest;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.Looper;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
@@ -36,9 +31,7 @@ import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -49,18 +42,18 @@ import io.crossbar.crossbarfxmarkets.database.LocationBatch;
 import io.crossbar.crossbarfxmarkets.database.XLocation;
 
 
-public class BackgroundService extends Service {
+public class BackgroundService extends Service implements NetworkTracker.StateListener {
 
     private static final String TAG = BackgroundService.class.getName();
     private final IBinder mBinder = new LocalBinder();
     private FusedLocationProviderClient mLocationProvider;
-
-    private boolean mHasNetwork;
+    private NetworkTracker mNetworkTracker;
 
     private long mBatchStartTime;
     private long mBatchEndTime;
     private LocationBatch mCurrentBatch;
-    private String mCurrentBatchID;
+    private long mCurrentBatchID;
+    private boolean mLocationRequested;
 
     private AppDatabase mDB;
     private Executor mExecutor;
@@ -69,9 +62,9 @@ public class BackgroundService extends Service {
         @Override
         public void onLocationResult(LocationResult locationResult) {
             super.onLocationResult(locationResult);
-            List<XLocation> locations = filterLocation(locationResult.getLocations());
             mExecutor.execute(() -> {
-                mDB.getLocationDao().insert(locations.toArray(new XLocation[0]));
+                System.out.println(String.format("Got %s locations", locationResult.getLocations().size()));
+                mDB.getLocationDao().insert(filterLocation(locationResult.getLocations()));
                 if (mBatchEndTime <= mBatchStartTime) {
                     connectAndSend(mDB.getLocationDao().getLocationsByBatchID(mCurrentBatchID));
                     initBatch();
@@ -80,56 +73,92 @@ public class BackgroundService extends Service {
         }
     };
 
-    private LocationRequest getLocationRequest(long batchIntervalSeconds, int granularitySeconds) {
-        LocationRequest request = LocationRequest.create();
-        request.setMaxWaitTime(batchIntervalSeconds * 1000);
-        request.setInterval(granularitySeconds * 1000);
-        request.setFastestInterval(granularitySeconds * 1000);
-        request.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
-        return request;
-    }
-
-    private void initBatch() {
-        mBatchStartTime = System.currentTimeMillis();
-        mBatchEndTime = System.currentTimeMillis() + 1 * 60 * 1000;
-        mCurrentBatchID = UUID.randomUUID().toString();
-        mExecutor.execute(() -> mDB.getLocationBatchDao().insert(new LocationBatch(mCurrentBatchID)));
-    }
-
-    class LocalBinder extends Binder {
-        BackgroundService getService() {
-            return BackgroundService.this;
-        }
-    }
-
     @Override
     public void onCreate() {
         super.onCreate();
         Log.i(TAG, "onCreate: Service started");
-        mDB = Room.databaseBuilder(getApplicationContext(),
-                AppDatabase.class, "crossbarfxmarkets").build();
         mExecutor = Executors.newSingleThreadExecutor();
+        mLocationProvider = new FusedLocationProviderClient(getApplicationContext());
+        mDB = Room.databaseBuilder(getApplicationContext(), AppDatabase.class,
+                "crossbarfxmarkets").build();
+        mNetworkTracker = new NetworkTracker(getApplicationContext());
+        mNetworkTracker.addStateListener(this);
     }
 
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
+        startLocationUpdates();
         return mBinder;
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i(TAG, "onStartCommand: Starting...");
-
-
-        mLocationProvider = new FusedLocationProviderClient(getApplicationContext());
-        if (hasLocationPermission()) {
-            Log.i(TAG, "onStartCommand: We have the permissions....");
-            initBatch();
-            mLocationProvider.requestLocationUpdates(getLocationRequest(mBatchEndTime, 10),
-                    mLocationCallback, Looper.getMainLooper());
-        }
+        startLocationUpdates();
         return START_STICKY;
+    }
+
+    private LocationRequest getLocationRequest(long batchIntervalSeconds, int granularitySeconds) {
+        LocationRequest request = LocationRequest.create();
+        request.setMaxWaitTime(batchIntervalSeconds);
+        request.setInterval(granularitySeconds * 1000);
+        request.setFastestInterval(granularitySeconds * 1000);
+        request.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
+        request.setSmallestDisplacement(1);
+        return request;
+    }
+
+    private void initBatch() {
+        mBatchStartTime = System.currentTimeMillis();
+        mBatchEndTime = System.currentTimeMillis() + 30 * 1000;
+        mCurrentBatch = new LocationBatch();
+        mExecutor.execute(() -> mCurrentBatchID = mDB.getLocationBatchDao().insert(mCurrentBatch));
+    }
+
+    private void startLocationUpdates() {
+        if (!mNetworkTracker.isRunning()) {
+            mNetworkTracker.start();
+        }
+        if (mLocationRequested) {
+            return;
+        }
+        if (hasLocationPermission()) {
+            Log.i(TAG, "startLocationUpdates: We have the permissions....");
+            initBatch();
+            mLocationProvider.requestLocationUpdates(
+                    getLocationRequest(mBatchEndTime - mBatchStartTime, 10),
+                    mLocationCallback, Looper.getMainLooper());
+            mLocationRequested = true;
+        }
+    }
+
+    private void stopLocationUpdates() {
+        if (mNetworkTracker.isRunning()) {
+            mNetworkTracker.removeStateListener(this);
+            mNetworkTracker.stop();
+        }
+        if (mLocationRequested) {
+            Log.i(TAG, "stopLocationUpdates: Stopping location updates");
+            mLocationProvider.removeLocationUpdates(mLocationCallback);
+            mLocationRequested = false;
+        }
+    }
+
+    @Override
+    public void onConnect() {
+        startLocationUpdates();
+    }
+
+    @Override
+    public void onDisconnect() {
+        stopLocationUpdates();
+    }
+
+    class LocalBinder extends Binder {
+        BackgroundService getService() {
+            return BackgroundService.this;
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -156,10 +185,7 @@ public class BackgroundService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (mLocationProvider != null) {
-            mLocationProvider.removeLocationUpdates(mLocationCallback);
-        }
-        System.out.println("I am killed....");
+        stopLocationUpdates();
     }
 
     public void startForeground() {
@@ -207,36 +233,15 @@ public class BackgroundService extends Service {
         });
     }
 
-    private List<XLocation> filterLocation(List<Location> locations) {
-        List<XLocation> result = new ArrayList<>();
-        for (Location location: locations) {
+    private XLocation[] filterLocation(List<Location> locations) {
+        XLocation[] result = new XLocation[locations.size()];
+        for (int i = 0; i < locations.size(); i++) {
+            Location location = locations.get(i);
             XLocation xLocation = new XLocation(location.getLatitude(), location.getLongitude(),
                     location.getTime());
-            xLocation.batchID = mCurrentBatchID;
-            result.add(xLocation);
+            xLocation.batchID = (int) mCurrentBatchID;
+            result[i] = xLocation;
         }
         return result;
-    }
-
-    public void trackWiFiState() {
-        ConnectivityManager cm = getSystemService(ConnectivityManager.class);
-        NetworkRequest.Builder builder = new NetworkRequest.Builder();
-        builder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
-        builder.addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR);
-        cm.requestNetwork(builder.build(), new ConnectivityManager.NetworkCallback() {
-            @Override
-            public void onAvailable(@NonNull Network network) {
-                super.onAvailable(network);
-                mHasNetwork = true;
-                Log.i(TAG, "onAvailable: Has network");
-            }
-
-            @Override
-            public void onLost(@NonNull Network network) {
-                super.onLost(network);
-                mHasNetwork = false;
-                Log.i(TAG, "onLost: Lost network");
-            }
-        });
     }
 }

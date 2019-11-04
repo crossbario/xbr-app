@@ -32,21 +32,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-        Util.ensureServiceRunning(getApplicationContext());
-        Util.ensureLocationPermissionsAndBind(MainActivity.this, mConnection,
-                LOCATION_REQUEST_CODE);
+    protected void onStart() {
+        super.onStart();
+        Util.ensureLocationPermissionsAndBind(this, mConnection, LOCATION_REQUEST_CODE);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        unbindService(mConnection);
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
-        if (requestCode == LOCATION_REQUEST_CODE) {
-            if (grantResults[0] == PERMISSION_GRANTED) {
-                Intent intent = new Intent(getApplicationContext(), BackgroundService.class);
-                bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
-            }
+        if (requestCode == LOCATION_REQUEST_CODE && grantResults[0] == PERMISSION_GRANTED) {
+            Intent intent = new Intent(getApplicationContext(), BackgroundService.class);
+            bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
         }
     }
 
@@ -54,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
             mService = ((BackgroundService.LocalBinder) service).getService();
+            mService.startForeground();
         }
 
         @Override

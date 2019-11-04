@@ -10,5 +10,5 @@ public interface BatchLocationDao {
     public LocationBatch getBatchByID(String uid);
 
     @Insert
-    public void insert(LocationBatch... batches);
+    public long insert(LocationBatch batch);
 }
