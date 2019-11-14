@@ -20,12 +20,6 @@ public class Util {
                 == PackageManager.PERMISSION_GRANTED;
     }
 
-    public static void ensureServiceRunning(Context ctx) {
-        if (!isBackgroundServiceRunning(ctx)) {
-            ctx.startService(new Intent(ctx, BackgroundService.class));
-        }
-    }
-
     public static void ensureLocationPermissionsAndBind(Activity activity, ServiceConnection onBind,
                                                         int requestCode) {
         Context ctx = activity.getApplicationContext();
@@ -36,19 +30,5 @@ public class Util {
             ActivityCompat.requestPermissions(activity, new String[]
                     {Manifest.permission.ACCESS_FINE_LOCATION}, requestCode);
         }
-    }
-
-    public static boolean isBackgroundServiceRunning(Context ctx) {
-        ActivityManager manager = ctx.getSystemService(ActivityManager.class);
-        if (manager == null) {
-            return false;
-        }
-        for (ActivityManager.RunningServiceInfo service:
-                manager.getRunningServices(Integer.MAX_VALUE)) {
-            if (BackgroundService.class.getName().equals(service.service.getClassName())) {
-                return true;
-            }
-        }
-        return false;
     }
 }
