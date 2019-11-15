@@ -23,7 +23,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int LOCATION_REQUEST_CODE = 1000;
     private static final int PERMISSION_GRANTED = 0;
 
-    private BackgroundService mService;
+    private ActivityTrackerService mActivityTrackerService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,7 +34,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        Util.ensureLocationPermissionsAndBind(this, mConnection, LOCATION_REQUEST_CODE);
+        Intent intent = new Intent(getApplicationContext(), ActivityTrackerService.class);
+        bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+//        Util.ensureLocationPermissionsAndBind(this, mConnection, LOCATION_REQUEST_CODE);
     }
 
     @Override
@@ -55,13 +57,12 @@ public class MainActivity extends AppCompatActivity {
     private ServiceConnection mConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
-            mService = ((BackgroundService.LocalBinder) service).getService();
-            mService.startForeground();
+            mActivityTrackerService = ((ActivityTrackerService.LocalBinder) service).getService();
         }
 
         @Override
         public void onServiceDisconnected(ComponentName className) {
-            mService = null;
+            mActivityTrackerService = null;
         }
     };
 }
