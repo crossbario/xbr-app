@@ -2,3 +2,5 @@
 mobile/mobile.iml
 wear/wear.iml
 .idea/
+.gradle
+local.properties
