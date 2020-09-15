@@ -273,21 +273,58 @@ table HostPingRequest
 }
 
 
-table HostPingResult
-{
-}
-
-
-table HostPingResults
-{
-}
-
-
 table HostPingTask
 {
     task: [uint8] (uuid);
     started: uint64;
 }
+
+
+enum IcmpReplyStatus: uint8
+{
+    ICMP_REPLY_NONE,
+    ICMP_REPLY_SUCCESS,
+    ICMP_REPLY_UNREACHABLE,
+}
+
+
+table HostPingResult
+{
+    /// The task for which this ICMP ping result is for.
+    task: [uint8] (uuid);
+
+    /// Point in time (UTC) when ICMP ping request was sent, in Unix time (ns precision).
+    timestamp: uint64;
+
+    /// If status is ICMP_REPLY_SUCCESS, the round-trip time in ns.
+    rtt: uint64;
+
+    /// ICMP reply message status.
+    status: IcmpReplyStatus;
+
+    /// If status is ICMP_REPLY_UNREACHABLE, the ICMP error code.
+    code: uint8;
+}
+
+
+table HostPingResults
+{
+    /// The task for which this ICMP ping result is for.
+    task: [uint8] (uuid);
+
+    /// Samples: Point in time (UTC) when ICMP ping request was sent, in Unix time (ns precision).
+    timestamp: [uint64];
+
+    /// Samples: If status is ICMP_REPLY_SUCCESS, the round-trip time in ns.
+    rtt: [uint64];
+
+    /// Samples: ICMP reply message status.
+    status: [IcmpReplyStatus];
+
+    /// Samples: If status is ICMP_REPLY_UNREACHABLE, the ICMP error code.
+    code: [uint8];
+}
+
 
 
 /**
@@ -333,5 +370,7 @@ rpc_service Network (type: "interface",
     /// Probe the specified host using ICMP ping requests, tracking ICMP responses.
     request_ping_host (HostPingRequest): HostPingTask (type: "procedure");
 
+    /// Used to retrieve ICMP ping results (after an ICMP ping task has finished). The result
+    /// is encrypted using the same key as used for encrypting the (initially returned) HostPingTask.
     get_ping_host_results (HostPingTask): HostPingResults (type: "procedure");
 }
