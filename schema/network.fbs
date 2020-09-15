@@ -167,4 +167,7 @@ rpc_service Network (type: "interface",
     // https://developer.android.com/reference/android/telephony/NetworkScan
     // https://developer.android.com/reference/android/telephony/TelephonyManager#getAllCellInfo()
     get_cellular_scan_results (Void): CellularScanResults (type: "procedure");
+
+    // https://source.android.com/devices/sensors/batching?hl=en
+    // https://source.android.com/devices/sensors/report-modes#continuous
 }
