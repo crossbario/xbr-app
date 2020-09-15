@@ -3,4 +3,4 @@ include ':app'
 // The below two lines must be commented out if we want to use
 // autobahn from JCenter. We also
 include ':autobahn'
-project(':autobahn').projectDir = new File("/home/om26er/scm/crossbario/autobahn-java/autobahn")
+project(':autobahn').projectDir = new File("/home/oberstet/scm/crossbario/autobahn-java/autobahn")

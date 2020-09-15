@@ -1,0 +1,81 @@
+///////////////////////////////////////////////////////////////////////////////
+//
+//  Copyright (C) Crossbar.io Technologies GmbH and contributors.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
+///////////////////////////////////////////////////////////////////////////////
+
+
+/// Include common definitions for WAMP.
+include "wamp.fbs";
+
+/// Our climate API lives in this namespace.
+namespace climate;
+
+
+/// A single climate sample.
+table Climate
+{
+    /// Persistent (static) ID of the entity (device owned by person) tracking its surrounding climate.
+    entity: [uint8] (uuid);
+
+    /// Sample: point in time (UTC) when sample was measured, in Unix time (ns precision).
+    timestamp: uint64;
+
+    /// Surrounding environment ambient temperature (in degrees Celsius).
+    temperature: double;
+
+    /// Surrounding environment atmospheric pressure (in hPa).
+    pressure: double;
+
+    /// Surrounding environment relative humidity (in %).
+    humidity: double;
+}
+
+
+/// A series of climate samples.
+table ClimateSeries
+{
+    /// Persistent (static) ID of the entity (device owned by person) tracking its surrounding climate.
+    entity: [uint8] (uuid);
+
+    /// Samples: point in time (UTC) when sample was measured, in Unix time (ns precision).
+    timestamp: [uint64];
+
+    /// Samples: surrounding environment ambient temperature (in degrees Celsius).
+    temperature: [double];
+
+    /// Samples: surrounding environment atmospheric pressure (in hPa).
+    pressure: [double];
+
+    /// Samples: surrounding environment relative humidity (in %).
+    humidity: [double];
+}
+
+
+/**
+ * Interface for simple climate services.
+ */
+rpc_service Climate (type: "interface",
+                     uuid: "fcd4d873-e24b-4239-a5fc-7ff1de027538")
+{
+    /// Event published for a new ClimateSeries.
+    on_climate_series (ClimateSeries): Void (type: "topic");
+
+    /// Retrieve the current (latest) climate sensor readings.
+    get_climate (Void): Climate (type: "procedure");
+
+    /// Retrieve a historical ClimateSeries, which covers the given timestamp.
+    // get_climate_series (timestamp uint64): ClimateSeries (type: "procedure");
+}

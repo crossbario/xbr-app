@@ -1,0 +1,376 @@
+///////////////////////////////////////////////////////////////////////////////
+//
+//  Copyright (C) Crossbar.io Technologies GmbH and contributors.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
+///////////////////////////////////////////////////////////////////////////////
+
+
+/// Include common definitions for WAMP.
+include "wamp.fbs";
+
+/// Our network API lives in this namespace.
+namespace network;
+
+
+/// Wifi channel widths.
+enum WifiChannelWidth: uint8
+{
+    CHANNEL_WIDTH_NONE,
+    CHANNEL_WIDTH_20MHZ,
+    CHANNEL_WIDTH_40MHZ,
+    CHANNEL_WIDTH_80MHZ,
+    CHANNEL_WIDTH_160MHZ,
+    CHANNEL_WIDTH_80MHZ_PLUS_MHZ
+}
+
+
+/// Cellular signal strength (abstract).
+/// See also: https://developer.android.com/reference/android/telephony/CellSignalStrength#summary
+enum CellularSignalStrength: uint8
+{
+    SIGNAL_STRENGTH_NONE,
+    SIGNAL_STRENGTH_GOOD,
+    SIGNAL_STRENGTH_GREAT,
+    SIGNAL_STRENGTH_MODERATE,
+    SIGNAL_STRENGTH_NONE_OR_UNKNOWN,
+    SIGNAL_STRENGTH_POOR
+}
+
+
+/// A single location sample (mostly for on_tile_enter/on_tile_leave).
+/// See also: https://developer.android.com/reference/android/net/wifi/ScanResult
+table WifiScanResult
+{
+    /// Persistent (static) ID of the entity tracking its location.
+    entity: [uint8] (uuid);
+
+    /// Sample: point in time (UTC) when sample was measured, in Unix time (ns precision).
+    timestamp: uint64;
+
+    /// The address of the access point.
+    bssid: string;
+
+    /// The network name.
+    ssid: string;
+
+    /// The primary 20 MHz frequency (in MHz) of the channel over which the client is communicating with the access point.
+    channel_frequency: uint32;
+
+    /// AP Channel bandwidth.
+    channel_width: WifiChannelWidth;
+
+    /// The detected signal level in dBm.
+    rssi: uint16;
+
+    /// Indicates Passpoint operator name published by access point; only available on Passpoint network and if published by access point.
+    passpoint_operator: string;
+
+    /// Indicates venue name (such as 'San Francisco Airport') published by access point; only available on Passpoint network and if published by access point.
+    passpoint_venue: string;
+}
+
+
+/// A series of location samples.
+table WifiScanResults
+{
+    /// Persistent (static) ID of the entity tracking its location.
+    entity: [uint8] (uuid);
+
+    /// Samples: point in time (UTC) when sample was measured, in Unix time (ns precision).
+    timestamp: [uint64];
+
+    /// The address of the access point.
+    bssid: [string];
+
+    /// The network name.
+    ssid: [string];
+
+    /// The primary 20 MHz frequency (in MHz) of the channel over which the client is communicating with the access point.
+    channel_frequency: [uint32];
+
+    /// AP Channel bandwidth.
+    channel_width: [WifiChannelWidth];
+
+    /// The detected signal level in dBm.
+    rssi: [uint16];
+
+    /// Indicates Passpoint operator name published by access point; only available on Passpoint network and if published by access point.
+    passpoint_operator: [string];
+
+    /// Indicates venue name (such as 'San Francisco Airport') published by access point; only available on Passpoint network and if published by access point.
+    passpoint_venue: [string];
+}
+
+
+table CellInfoGsm
+{
+
+}
+
+
+table CellInfoCdma
+{
+
+}
+
+
+table CellInfoTdscdma
+{
+
+}
+
+
+/// LTE (4G) cell static information.
+/// See also: https://developer.android.com/reference/android/telephony/CellIdentityLte
+table CellLte
+{
+    /// Persistent (static) ID of the entity tracking cells.
+    entity: [uint8] (uuid);
+
+    /// 28-bit Cell Identity.
+    cid: uint32;
+
+    /// Sample: point in time (UTC) when the cell information was first seen, in Unix time (ns precision).
+    timestamp: uint64;
+
+    /// 3-digit Mobile Country Code, 0..999.
+    mcc: string;
+
+    /// 2 or 3-digit Mobile Network Code, 0..999.
+    mnc: string;
+
+    /// Physical Cell Id 0..503.
+    pci: uint16;
+
+    /// 16-bit Tracking Area Code
+    tac: uint16;
+
+    /// Bands of the cell. Reference: 3GPP TS 36.101 section 5.5.
+    bands: [uint16];
+
+    /// Cell bandwidth in kHz.
+    bandwidth: uint32;
+
+    /// 18-bit Absolute RF Channel Number.
+    earfcn: uint32;
+}
+
+
+/// LTE (4G) cell dynamic information.
+/// See also:
+/// * https://developer.android.com/reference/android/telephony/CellInfoLte
+/// * https://developer.android.com/reference/android/telephony/CellSignalStrengthLte
+table CellInfoLte
+{
+    /// Persistent (static) ID of the entity tracking cells.
+    entity: [uint8] (uuid);
+
+    /// 28-bit Cell Identity.
+    cid: uint32;
+
+    /// Sample: point in time (UTC) when sample was measured, in Unix time (ns precision).
+    timestamp: uint64;
+
+    /// The RSRP in ASU.
+    asu_level: uint32;
+
+    /// Channel quality indicator
+    cqi: uint32;
+
+    /// Signal strength in dBm.
+    dbm: uint32;
+
+    /// Abstract level value for the overall signal quality.
+    level: uint32;
+
+    /// Reference signal received power in dBm.
+    rsrp: uint32;
+
+    /// Reference signal received quality.
+    rsrq: uint32;
+
+    /// Received Signal Strength Indication (RSSI) in dBm The value range is [-113, -51] inclusively or CellInfo#UNAVAILABLE if unavailable.
+    rssi: uint32;
+
+    /// Reference signal signal-to-noise ratio
+    rssnr: uint32;
+
+    /// The timing advance value for LTE, as a value in range of 0..1282.
+    timing_advance: uint32;
+}
+
+
+table CellInfoWcdma
+{
+
+}
+
+
+table CellularScanResult
+{
+    /// Persistent (static) ID of the entity tracking its location.
+    entity: [uint8] (uuid);
+
+    /// Sample: point in time (UTC) when sample was measured, in Unix time (ns precision).
+    timestamp: uint64;
+}
+
+
+/// A series of location samples.
+table CellularScanResults
+{
+    /// Persistent (static) ID of the entity tracking its location.
+    entity: [uint8] (uuid);
+
+    /// Samples: point in time (UTC) when sample was measured, in Unix time (ns precision).
+    timestamp: [uint64];
+}
+
+
+table CellularScanToken
+{
+    token: [uint8] (uuid);
+    created: uint64;
+    expires: uint64;
+}
+
+
+table CellularScan
+{
+    scan: [uint8] (uuid);
+    started: uint64;
+}
+
+
+table HostPingRequest
+{
+    /// DNS hostname or IPv4/v6 host address of the host to be probed with ICMP pings.
+    host: string;
+
+    /// Total number of ping requests sent.
+    total: uint16;
+
+    /// Parallel ping requests being sent (while the probing is running).
+    parallel: uint16;
+
+    /// Delay between rounds of pings being sent in ms.
+    delay: uint16;
+
+    /// Random jitter of delay between rounds of pings.
+    delay_jitter: uint16;
+}
+
+
+table HostPingTask
+{
+    task: [uint8] (uuid);
+    started: uint64;
+}
+
+
+enum IcmpReplyStatus: uint8
+{
+    ICMP_REPLY_NONE,
+    ICMP_REPLY_SUCCESS,
+    ICMP_REPLY_UNREACHABLE,
+}
+
+
+table HostPingResult
+{
+    /// The task for which this ICMP ping result is for.
+    task: [uint8] (uuid);
+
+    /// Point in time (UTC) when ICMP ping request was sent, in Unix time (ns precision).
+    timestamp: uint64;
+
+    /// If status is ICMP_REPLY_SUCCESS, the round-trip time in ns.
+    rtt: uint64;
+
+    /// ICMP reply message status.
+    status: IcmpReplyStatus;
+
+    /// If status is ICMP_REPLY_UNREACHABLE, the ICMP error code.
+    code: uint8;
+}
+
+
+table HostPingResults
+{
+    /// The task for which this ICMP ping result is for.
+    task: [uint8] (uuid);
+
+    /// Samples: Point in time (UTC) when ICMP ping request was sent, in Unix time (ns precision).
+    timestamp: [uint64];
+
+    /// Samples: If status is ICMP_REPLY_SUCCESS, the round-trip time in ns.
+    rtt: [uint64];
+
+    /// Samples: ICMP reply message status.
+    status: [IcmpReplyStatus];
+
+    /// Samples: If status is ICMP_REPLY_UNREACHABLE, the ICMP error code.
+    code: [uint8];
+}
+
+
+
+/**
+ * XBR interface for cellular and Wifi network data services.
+ *
+ * See also: https://developer.android.com/reference/android/net/wifi/WifiManager
+ */
+rpc_service Network (type: "interface",
+                     uuid: "52947dc1-b59c-4859-942e-cedefcda6435")
+{
+    ///////////////////////////////////////////////////////////////////////////
+    //
+    // WiFi networks
+
+    /// Return a list of Wifi access points found in the most recent scan.
+    /// See also: https://developer.android.com/reference/android/net/wifi/WifiManager#getScanResults()
+    get_wifi_scan_results (Void): WifiScanResults (type: "procedure");
+
+    // "This method was deprecated in API level 28.":
+    // https://developer.android.com/reference/android/net/wifi/WifiManager#startScan()
+    // "Status: Won't Fix (Intended Behavior)":
+    // https://issuetracker.google.com/issues/112688545#comment90
+
+    ///////////////////////////////////////////////////////////////////////////
+    //
+    // Cellular networks
+
+    /// Return a list of mobile network cells found in the most recent scan.
+    get_cellular_scan_results (Void): CellularScanResults (type: "procedure");
+
+    /// Request running a full scan for cellular networks currently in range for the device.
+    /// A buyer will need to buy the decryption key for a token to actually start the cellular scan.
+    request_cellular_scan (Void): CellularScanToken (type: "procedure");
+
+    /// After buying the key to decrypt the ceullular scan token, a call of this procedure
+    /// will then actually start the scan.
+    start_cellular_scan (CellularScanToken): CellularScan (type: "procedure");
+
+    ///////////////////////////////////////////////////////////////////////////
+    //
+    // TCP/IP
+
+    /// Probe the specified host using ICMP ping requests, tracking ICMP responses.
+    request_ping_host (HostPingRequest): HostPingTask (type: "procedure");
+
+    /// Used to retrieve ICMP ping results (after an ICMP ping task has finished). The result
+    /// is encrypted using the same key as used for encrypting the (initially returned) HostPingTask.
+    get_ping_host_results (HostPingTask): HostPingResults (type: "procedure");
+}
