@@ -16,8 +16,9 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-attribute "uuid";
-attribute "type";
-attribute "stream";
-attribute "raises";
-table Void {}
+
+/// Include common definitions for WAMP.
+include "wamp.fbs";
+
+/// Our network API lives in this namespace.
+namespace network;
