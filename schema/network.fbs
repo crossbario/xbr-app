@@ -36,6 +36,19 @@ enum WifiChannelWidth: uint8
 }
 
 
+/// Cellular signal strength (abstract).
+/// See also: https://developer.android.com/reference/android/telephony/CellSignalStrength#summary
+enum CellularSignalStrength: uint8
+{
+    SIGNAL_STRENGTH_NONE,
+    SIGNAL_STRENGTH_GOOD,
+    SIGNAL_STRENGTH_GREAT,
+    SIGNAL_STRENGTH_MODERATE,
+    SIGNAL_STRENGTH_NONE_OR_UNKNOWN,
+    SIGNAL_STRENGTH_POOR
+}
+
+
 /// A single location sample (mostly for on_tile_enter/on_tile_leave).
 /// See also: https://developer.android.com/reference/android/net/wifi/ScanResult
 table WifiScanResult
@@ -100,30 +113,110 @@ table WifiScanResults
     passpoint_venue: [string];
 }
 
+
 table CellInfoGsm
 {
 
 }
+
 
 table CellInfoCdma
 {
 
 }
 
+
 table CellInfoTdscdma
 {
 
 }
 
+
+/// LTE (4G) cell static information.
+/// See also: https://developer.android.com/reference/android/telephony/CellIdentityLte
+table CellLte
+{
+    /// Persistent (static) ID of the entity tracking cells.
+    entity: [uint8] (uuid);
+
+    /// 28-bit Cell Identity.
+    cid: uint32;
+
+    /// Sample: point in time (UTC) when the cell information was first seen, in Unix time (ns precision).
+    timestamp: uint64;
+
+    /// 3-digit Mobile Country Code, 0..999.
+    mcc: string;
+
+    /// 2 or 3-digit Mobile Network Code, 0..999.
+    mnc: string;
+
+    /// Physical Cell Id 0..503.
+    pci: uint16;
+
+    /// 16-bit Tracking Area Code
+    tac: uint16;
+
+    /// Bands of the cell. Reference: 3GPP TS 36.101 section 5.5.
+    bands: [uint16];
+
+    /// Cell bandwidth in kHz.
+    bandwidth: uint32;
+
+    /// 18-bit Absolute RF Channel Number.
+    earfcn: uint32;
+}
+
+
+/// LTE (4G) cell dynamic information.
+/// See also:
+/// * https://developer.android.com/reference/android/telephony/CellInfoLte
+/// * https://developer.android.com/reference/android/telephony/CellSignalStrengthLte
 table CellInfoLte
 {
+    /// Persistent (static) ID of the entity tracking cells.
+    entity: [uint8] (uuid);
 
+    /// 28-bit Cell Identity.
+    cid: uint32;
+
+    /// Sample: point in time (UTC) when sample was measured, in Unix time (ns precision).
+    timestamp: uint64;
+
+    /// The RSRP in ASU.
+    asu_level: uint32;
+
+    /// Channel quality indicator
+    cqi: uint32;
+
+    /// Signal strength in dBm.
+    dbm: uint32;
+
+    /// Abstract level value for the overall signal quality.
+    level: uint32;
+
+    /// Reference signal received power in dBm.
+    rsrp: uint32;
+
+    /// Reference signal received quality.
+    rsrq: uint32;
+
+    /// Received Signal Strength Indication (RSSI) in dBm The value range is [-113, -51] inclusively or CellInfo#UNAVAILABLE if unavailable.
+    rssi: uint32;
+
+    /// Reference signal signal-to-noise ratio
+    rssnr: uint32;
+
+    /// The timing advance value for LTE, as a value in range of 0..1282.
+    timing_advance: uint32;
 }
+
 
 table CellInfoWcdma
 {
 
 }
+
 
 table CellularScanResult
 {
@@ -133,6 +226,7 @@ table CellularScanResult
     /// Sample: point in time (UTC) when sample was measured, in Unix time (ns precision).
     timestamp: uint64;
 }
+
 
 /// A series of location samples.
 table CellularScanResults
@@ -145,6 +239,57 @@ table CellularScanResults
 }
 
 
+table CellularScanToken
+{
+    token: [uint8] (uuid);
+    created: uint64;
+    expires: uint64;
+}
+
+
+table CellularScan
+{
+    scan: [uint8] (uuid);
+    started: uint64;
+}
+
+
+table HostPingRequest
+{
+    /// DNS hostname or IPv4/v6 host address of the host to be probed with ICMP pings.
+    host: string;
+
+    /// Total number of ping requests sent.
+    total: uint16;
+
+    /// Parallel ping requests being sent (while the probing is running).
+    parallel: uint16;
+
+    /// Delay between rounds of pings being sent in ms.
+    delay: uint16;
+
+    /// Random jitter of delay between rounds of pings.
+    delay_jitter: uint16;
+}
+
+
+table HostPingResult
+{
+}
+
+
+table HostPingResults
+{
+}
+
+
+table HostPingTask
+{
+    task: [uint8] (uuid);
+    started: uint64;
+}
+
+
 /**
  * XBR interface for cellular and Wifi network data services.
  *
@@ -153,7 +298,11 @@ table CellularScanResults
 rpc_service Network (type: "interface",
                      uuid: "52947dc1-b59c-4859-942e-cedefcda6435")
 {
-    /// Return a list of access points found in the most recent scan.
+    ///////////////////////////////////////////////////////////////////////////
+    //
+    // WiFi networks
+
+    /// Return a list of Wifi access points found in the most recent scan.
     /// See also: https://developer.android.com/reference/android/net/wifi/WifiManager#getScanResults()
     get_wifi_scan_results (Void): WifiScanResults (type: "procedure");
 
@@ -161,13 +310,28 @@ rpc_service Network (type: "interface",
     // https://developer.android.com/reference/android/net/wifi/WifiManager#startScan()
     // "Status: Won't Fix (Intended Behavior)":
     // https://issuetracker.google.com/issues/112688545#comment90
-    // start_wifi_scan (): Void (type: "procedure");
 
-    // https://developer.android.com/reference/android/net/ConnectivityManager
-    // https://developer.android.com/reference/android/telephony/NetworkScan
-    // https://developer.android.com/reference/android/telephony/TelephonyManager#getAllCellInfo()
+    ///////////////////////////////////////////////////////////////////////////
+    //
+    // Cellular networks
+
+    /// Return a list of mobile network cells found in the most recent scan.
     get_cellular_scan_results (Void): CellularScanResults (type: "procedure");
 
-    // https://source.android.com/devices/sensors/batching?hl=en
-    // https://source.android.com/devices/sensors/report-modes#continuous
+    /// Request running a full scan for cellular networks currently in range for the device.
+    /// A buyer will need to buy the decryption key for a token to actually start the cellular scan.
+    request_cellular_scan (Void): CellularScanToken (type: "procedure");
+
+    /// After buying the key to decrypt the ceullular scan token, a call of this procedure
+    /// will then actually start the scan.
+    start_cellular_scan (CellularScanToken): CellularScan (type: "procedure");
+
+    ///////////////////////////////////////////////////////////////////////////
+    //
+    // TCP/IP
+
+    /// Probe the specified host using ICMP ping requests, tracking ICMP responses.
+    request_ping_host (HostPingRequest): HostPingTask (type: "procedure");
+
+    get_ping_host_results (HostPingTask): HostPingResults (type: "procedure");
 }

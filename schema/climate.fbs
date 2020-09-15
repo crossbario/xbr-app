@@ -27,7 +27,7 @@ namespace climate;
 /// A single climate sample.
 table Climate
 {
-    /// Persistent (static) ID of the entity tracking its surrounding climate.
+    /// Persistent (static) ID of the entity (device owned by person) tracking its surrounding climate.
     entity: [uint8] (uuid);
 
     /// Sample: point in time (UTC) when sample was measured, in Unix time (ns precision).
@@ -47,7 +47,7 @@ table Climate
 /// A series of climate samples.
 table ClimateSeries
 {
-    /// Persistent (static) ID of the entity tracking its surrounding climate.
+    /// Persistent (static) ID of the entity (device owned by person) tracking its surrounding climate.
     entity: [uint8] (uuid);
 
     /// Samples: point in time (UTC) when sample was measured, in Unix time (ns precision).
@@ -72,4 +72,10 @@ rpc_service Climate (type: "interface",
 {
     /// Event published for a new ClimateSeries.
     on_climate_series (ClimateSeries): Void (type: "topic");
+
+    /// Retrieve the current (latest) climate sensor readings.
+    get_climate (Void): Climate (type: "procedure");
+
+    /// Retrieve a historical ClimateSeries, which covers the given timestamp.
+    // get_climate_series (timestamp uint64): ClimateSeries (type: "procedure");
 }
