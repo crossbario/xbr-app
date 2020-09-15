@@ -7,6 +7,8 @@
 
 package io.crossbar.crossbarfxmarkets;
 
+import android.app.ActivityManager;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
@@ -23,6 +25,8 @@ public class MainActivity extends AppCompatActivity {
     private static final String MEMBER_ETH_KEY = "2eac15546def97adc6d69ca6e28eec831189baa2533e7910755d15403a0749e8";
     private static final String CS_KEY = "0db085a389c1216ad62b88b408e1d830abca9c9f9dad67eb8c8f8734fe7575eb";
 
+    private boolean mServiceRunning;
+
     @BindView(R.id.buttonStartSelling)
     Button mButtonSell;
 
@@ -32,7 +36,28 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
 
-        mButtonSell.setOnClickListener(v -> startSellerService());
+        mButtonSell.setOnClickListener(v -> {
+            if (mServiceRunning) {
+                stopService(new Intent(this, XbrSellerService.class));
+                mServiceRunning = false;
+                mButtonSell.setText("Start selling");
+            } else {
+                startSellerService();
+                mServiceRunning = true;
+                mButtonSell.setText("Stop selling");
+            }
+        });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mServiceRunning = isMyServiceRunning(XbrSellerService.class);
+        if (mServiceRunning) {
+            mButtonSell.setText("Stop selling");
+        } else {
+            mButtonSell.setText("Start selling");
+        }
     }
 
     private void startSellerService() {
@@ -43,5 +68,15 @@ public class MainActivity extends AppCompatActivity {
         intent.putExtra("member_eth_key", MEMBER_ETH_KEY);
         intent.putExtra("cryptosign_key", CS_KEY);
         startService(intent);
+    }
+
+    private boolean isMyServiceRunning(Class<?> serviceClass) {
+        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (serviceClass.getName().equals(service.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
     }
 }
