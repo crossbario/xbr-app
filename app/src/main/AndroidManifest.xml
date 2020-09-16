@@ -26,9 +26,11 @@
             </intent-filter>
         </activity>
 
-        <service android:name=".BackgroundService"/>
-        <service android:name=".ActivityTrackerService" />
-        <receiver android:name=".DeviceActivityReceiver"/>
+        <service android:name=".XbrSellerService"/>
+
+<!--        <service android:name=".BackgroundService"/>-->
+<!--        <service android:name=".ActivityTrackerService" />-->
+<!--        <receiver android:name=".DeviceActivityReceiver"/>-->
 
     </application>
 

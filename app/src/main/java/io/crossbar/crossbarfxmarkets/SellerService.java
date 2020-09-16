@@ -28,28 +28,33 @@ import xbr.network.eip712.MarketMemberLogin;
 
 public class SellerService {
 
-    private static final String DELEGATE_ETH_KEY = "d99b5b29e6da2528bf458b26237a6cf8655a3e3276c1cdc0de1f98cefee81c01";
-    private static final String MEMBER_ETH_KEY = "2eac15546def97adc6d69ca6e28eec831189baa2533e7910755d15403a0749e8";
-    private static final String CS_KEY = "0db085a389c1216ad62b88b408e1d830abca9c9f9dad67eb8c8f8734fe7575eb";
-
     private SimpleSeller mSeller;
-    private String mURI;
-    private String mRealm;
 
-    public SellerService(String uri, String realm) {
+    private final String mURI;
+    private final String mRealm;
+    private final String mDelegateEthKey;
+    private final String mMemberEthKey;
+    private final String mCryptoSignKey;
+
+    public SellerService(String uri, String realm, String delegateEthKey, String memberEthKey,
+                         String cryptoSignKey) {
+
         mURI = uri;
         mRealm = realm;
+        mDelegateEthKey = delegateEthKey;
+        mMemberEthKey = memberEthKey;
+        mCryptoSignKey = cryptoSignKey;
     }
 
     public void sell() {
         Session session = new Session();
         session.addOnJoinListener(this::onJoin);
 
-        ECKeyPair keyPair = ECKeyPair.create(Numeric.hexStringToByteArray(MEMBER_ETH_KEY));
+        ECKeyPair keyPair = ECKeyPair.create(Numeric.hexStringToByteArray(mMemberEthKey));
         String addressHex = Credentials.create(keyPair).getAddress();
         byte[] addressRaw = Numeric.hexStringToByteArray(addressHex);
 
-        String pubkeyHex = CryptosignAuth.getPublicKey(AuthUtil.toBinary(CS_KEY));
+        String pubkeyHex = CryptosignAuth.getPublicKey(AuthUtil.toBinary(mCryptoSignKey));
 
         Map<String, Object> extras = new HashMap<>();
         extras.put("wallet_address", addressRaw);
@@ -60,7 +65,7 @@ public class SellerService {
         ).thenCompose(signature -> {
             extras.put("signature", signature);
 
-            CryptosignAuth auth = new CryptosignAuth("public", CS_KEY, extras);
+            CryptosignAuth auth = new CryptosignAuth("public", mCryptoSignKey, extras);
             Client client = new Client(session, mURI, mRealm, auth);
 
             return client.connect();
@@ -84,7 +89,7 @@ public class SellerService {
                 "xbr.marketmaker.get_config", Map.class
         ).thenCompose(config -> {
             String marketMaker = (String) config.get("marketmaker");
-            mSeller = new SimpleSeller(marketMaker, DELEGATE_ETH_KEY);
+            mSeller = new SimpleSeller(marketMaker, mDelegateEthKey);
             BigInteger price = Util.toXBR(1);
             int intervalSeconds = 10;
             mSeller.add(apiID, topic, price, intervalSeconds);
