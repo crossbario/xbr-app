@@ -4,10 +4,11 @@ FBS_SCHEMA_FILES=./schema/*.fbs
 # output directories for generated bindings
 FBS_PYTHON_OUTPUT=/tmp/test/python
 FBS_BFBS_OUTPUT=/tmp/test/bfbs
-FBS_JAVA_OUTPUT=/tmp/test/java
+FBS_JAVA_ROOT=./app/src/main/java
+FBS_JAVA_OUTPUT=./app/src/main/java/io/crossbar/crossbarfxmarkets/schema
 
 #FLATC=${HOME}/scm/3rdparty/flatbuffers/flatc
-FLATC=/usr/local/bin/flatc
+FLATC=flatc
 
 flatc_version:
 	$(FLATC) --version
@@ -40,4 +41,5 @@ build_fbs_python:
 
 # generate java bindings from schema files
 build_fbs_java:
-	$(FLATC) -o $(FBS_JAVA_OUTPUT) --java $(FBS_SCHEMA_FILES)
+	$(FLATC) -o $(FBS_JAVA_ROOT) --java $(FBS_SCHEMA_FILES)
+	mv $(FBS_JAVA_ROOT)/Void.java $(FBS_JAVA_OUTPUT)

@@ -21,7 +21,7 @@
 include "wamp.fbs";
 
 /// Our location API lives in this namespace.
-namespace location;
+namespace io.crossbar.crossbarfxmarkets.schema.location;
 
 
 /// A single location sample (mostly for on_tile_enter/on_tile_leave).
