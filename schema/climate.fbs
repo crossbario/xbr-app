@@ -21,7 +21,7 @@
 include "wamp.fbs";
 
 /// Our climate API lives in this namespace.
-namespace climate;
+namespace io.crossbar.crossbarfxmarkets.schema.climate;
 
 
 /// A single climate sample.

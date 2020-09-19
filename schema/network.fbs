@@ -21,7 +21,7 @@
 include "wamp.fbs";
 
 /// Our network API lives in this namespace.
-namespace network;
+namespace io.crossbar.crossbarfxmarkets.schema.network;
 
 
 /// Wifi channel widths.

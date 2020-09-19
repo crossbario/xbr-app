@@ -3,4 +3,10 @@ include ':app'
 // The below two lines must be commented out if we want to use
 // autobahn from JCenter. We also
 include ':autobahn'
-project(':autobahn').projectDir = new File("/home/oberstet/scm/crossbario/autobahn-java/autobahn")
+
+def ABPATH = "$System.env.AUTHBAHN_JAVA_PATH"
+if (ABPATH == "null") {
+    ABPATH = "${System.env.HOME}/scm/crossbario/autobahn-java/autobahn"
+}
+
+project(':autobahn').projectDir = new File(ABPATH)
